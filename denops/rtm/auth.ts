@@ -26,7 +26,7 @@ export class Auth {
    * @param  array 文字列結合するパラメータ
    * @return string
    */
-  generateToken(): string {
+  static generateToken(): string {
     return "ok";
   }
 }
