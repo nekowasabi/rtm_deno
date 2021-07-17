@@ -6,8 +6,10 @@ test({
   mode: "all",
   name: "Auth for RTM",
   fn: () => {
-    const auth = new Auth();
-    const result = auth.generateApiSig();
-    assertEquals(result, "no", undefined);
+    assertEquals(
+      Auth.generateApiSig("testApiKey", "testSecretKey", ["aaa", "bbb", "ccc"]),
+      "84462db18aac892d8f7adc8d9a7acd61",
+      undefined
+    );
   },
 });

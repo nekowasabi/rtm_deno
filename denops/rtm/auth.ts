@@ -6,10 +6,18 @@ export class Auth {
   /**
    * Apiシグニチャを生成する
    *
+   * @param string apiKey RTMのAPIキー
+   * @param string apiSecretKey RTMRTMのシークレットAPIキー
+   * @param string[] params APIに投げるパラメータ
    * @return string
    */
-  generateApiSig() {
-    return "nolifeking";
+  static generateApiSig(
+    apiKey: string,
+    apiSecretKey: string,
+    params: string[]
+  ) {
+    const q: string = apiSecretKey + "api_key" + apiKey + params.join("");
+    return createHash("md5").update(q).toString();
   }
 
   /**
@@ -18,14 +26,7 @@ export class Auth {
    * @param  array 文字列結合するパラメータ
    * @return string
    */
-  generateToken(params: []): string {
-    const hash = createHash("md5");
-
-    // for param in sort(keys(a:000[0]))
-    //   let q .= param . l:query_params[param]
-    // endfor
-    // return s:CalcMd5(g:rtm_secret_key.'api_key'.g:rtm_api_key.q)
-
+  generateToken(): string {
     return "ok";
   }
 }
