@@ -8,7 +8,9 @@ export class Auth {
    *
    * @return string
    */
-  generateApiSig() {}
+  generateApiSig() {
+    return "nolifeking";
+  }
 
   /**
    * APIトークンを生成する
