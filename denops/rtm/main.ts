@@ -1,12 +1,22 @@
-import { Denops } from "https://deno.land/x/denops_std@v1.0.0-beta.2/mod.ts";
-import { execute } from "https://deno.land/x/denops_std@v1.0.0-beta.2/helper/mod.ts";
+import { Denops } from "https://deno.land/x/denops_std@v1.0.0/mod.ts";
+import { execute } from "https://deno.land/x/denops_std@v1.0.0/helper/mod.ts";
 import { Auth } from "./auth.ts";
 
 export async function main(denops: Denops): Promise<void> {
   denops.dispatcher = {
     async echo(text: unknown): Promise<unknown> {
-      const key = Auth.generateApiSig("aa", "bbb", ["1", "2", "3"]);
-      console.log(key);
+      // const key = Auth.generateApiSig("aa", "bbb", ["1", "2", "3"]);
+      // console.log(key);
+
+      // const tmp = await Auth.getTokenFromFile("/Users/takets/.rtm_token");
+      // console.log(tmp);
+      //
+
+      // const key = await Auth.generateToken(
+      //   "aa",
+      //   "bbb",
+      //   "/Users/takets/.vimrcccc"
+      // );
 
       return await Promise.resolve(text);
     },

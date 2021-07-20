@@ -1,7 +1,14 @@
 import { createHash } from "https://deno.land/std@0.100.0/hash/mod.ts";
+import { existsSync } from "https://deno.land/std@0.101.0/fs/mod.ts";
 
 export class Auth {
-  constructor() {}
+  auth_url: string;
+  rest_url: string;
+
+  constructor() {
+    this.auth_url = "http://www.rememberthemilk.com/services/auth/";
+    this.rest_url = "https://api.rememberthemilk.com/services/rest/";
+  }
 
   /**
    * Apiシグニチャを生成する
@@ -15,7 +22,7 @@ export class Auth {
     apiKey: string,
     apiSecretKey: string,
     params: string[]
-  ) {
+  ): string {
     const q: string = apiSecretKey + "api_key" + apiKey + params.join("");
     return createHash("md5").update(q).toString();
   }
@@ -23,10 +30,49 @@ export class Auth {
   /**
    * APIトークンを生成する
    *
-   * @param  array 文字列結合するパラメータ
+   * @param string apiKey RTMのAPIキー
+   * @param string apiSecretKey RTMRTMのシークレットAPIキー
+   * @param string filePath .rtm_tokenのファイルパス
    * @return string
    */
-  static generateToken(): string {
+  static async generateToken(
+    apiKey: string,
+    apiSecretKey: string,
+    filePath: string
+  ): Promise<string> {
+    const token = await this.getTokenFromFile(filePath);
+    if (token !== undefined) return token;
+
+    // get frob
+    let apiSig = this.generateApiSig(apiKey, apiSecretKey, [
+      "rtm.auth.getFrob",
+    ]);
+    const frob = await this.getFrob(apiSig);
+
+    // auth
+
+    // get token
+
     return "ok";
   }
+
+  /**
+   * ファイルに保存されたトークンを取得する
+   *
+   * @param string filePath .rtm_tokenのファイルパス
+   * @return string | undefined
+   */
+  static async getTokenFromFile(filePath: string) {
+    if (!existsSync(filePath)) return undefined;
+
+    return await Deno.readTextFile(filePath);
+  }
+
+  /**
+   * Frobを生成する
+   *
+   * @param string apiSig Frob用のAPIシグニチャ
+   * @return string
+   */
+  static getFrob(apiSig: string) {}
 }
