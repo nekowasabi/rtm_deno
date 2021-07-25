@@ -12,11 +12,12 @@ export async function main(denops: Denops): Promise<void> {
       // console.log(tmp);
       //
 
-      // const key = await Auth.generateToken(
-      //   "aa",
-      //   "bbb",
-      //   "/Users/takets/.vimrcccc"
-      // );
+      const key = await Auth.generateToken(
+        "5b909a70f5054f2fb076a682235c7ee7",
+        "48783977375d19f7",
+        "/Users/takets/.rtm_token",
+        denops
+      );
 
       return await Promise.resolve(text);
     },
