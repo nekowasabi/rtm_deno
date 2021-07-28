@@ -47,8 +47,8 @@ export class Auth {
     filePath: string,
     denops: Denops
   ): Promise<string> {
-    // const tokenFromFile = await this.getTokenFromFile(filePath);
-    // if (tokenFromFile !== undefined) return tokenFromFile;
+    const tokenFromFile = await this.getTokenFromFile(filePath);
+    if (tokenFromFile !== undefined) return tokenFromFile;
 
     // get frob
     let params: { [index: string]: string } = {
@@ -64,12 +64,10 @@ export class Auth {
 
     await this.authorize(apiSig, apiKey, frob, denops);
 
-    // // get token
+    // get token
     params = { format: "json", frob: frob, method: "rtm.auth.getToken" };
     apiSig = this.generateApiSig(apiKey, apiSecretKey, params);
-    const token = await this.getTokenFromApi(apiSig, apiKey, frob);
-
-    return "ok";
+    return await this.getTokenFromApi(apiSig, apiKey, frob);
   }
 
   /**
@@ -180,5 +178,58 @@ export class Auth {
     });
     const j = JSON.parse(str);
     return j.rsp.auth.token;
+  }
+
+  /**
+   * ログイントークンからタイムライントークンを生成する
+   *
+   * @param string apiKey RTMのAPIキー
+   * @param string apiSecretKey RTMRTMのシークレットAPIキー
+   * @param string token RTMのトークン
+   * @return string
+   */
+  static async getTimelineFromApi(
+    apiKey: string,
+    apiSecretKey: string,
+    token: string
+  ) {
+    console.log(token);
+    let params: { [index: string]: string } = {
+      auth_token: token.toString(),
+      format: "json",
+      method: "rtm.timelines.create",
+    };
+
+    // auth_token: "d4a940c20e7d93455fafc082616884e94788b1fa",
+    let apiSig = this.generateApiSig(apiKey, apiSecretKey, params);
+
+    // let l:url = s:rest_url . '?method=rtm.timelines.create&api_key='.g:rtm_api_key .  '&auth_token='.a:token . '&format=json' . '&api_sig='.l:api_sig
+    const url: string =
+      this.REST_URL +
+      "?method=rtm.timelines.create&api_key=" +
+      apiKey +
+      "&auth_token=" +
+      token +
+      "&format=json&api_sig=" +
+      apiSig;
+    // console.log(url);
+
+    // let l:json = webapi#http#get(l:url)
+    // let l:content = webapi#json#decode(l:json['content'])
+    //
+    // return l:content.rsp.timeline
+    const res = await fetch(url).then((response) => {
+      return response.body?.getReader();
+    });
+    if (!res) return "no";
+
+    const str: string = await res.read().then(({ value }) => {
+      const d = new TextDecoder();
+      return d.decode(value).toString();
+    });
+
+    const j = JSON.parse(str);
+    console.log(j);
+    return j.rsp.timeline;
   }
 }
