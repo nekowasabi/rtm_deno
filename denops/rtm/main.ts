@@ -31,7 +31,9 @@ export async function main(denops: Denops): Promise<void> {
       // let l:save_file = [ l:content['rsp']['auth']['token'] ]
       // call writefile(l:save_file, g:setting_path)
 
-      return await Promise.resolve(text);
+      return await Promise.resolve(
+        token + " -- d4a940c20e7d93455fafc082616884e94788b1fa"
+      );
     },
   };
 

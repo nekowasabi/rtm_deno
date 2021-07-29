@@ -48,7 +48,8 @@ export class Auth {
     denops: Denops
   ): Promise<string> {
     const tokenFromFile = await this.getTokenFromFile(filePath);
-    if (tokenFromFile !== undefined) return tokenFromFile;
+    if (tokenFromFile !== undefined)
+      return tokenFromFile.replace(/(\r?\n)$/, "");
 
     // get frob
     let params: { [index: string]: string } = {
@@ -193,7 +194,6 @@ export class Auth {
     apiSecretKey: string,
     token: string
   ) {
-    console.log(token);
     let params: { [index: string]: string } = {
       auth_token: token.toString(),
       format: "json",
