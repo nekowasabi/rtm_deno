@@ -1,6 +1,7 @@
-import { Denops } from "https://deno.land/x/denops_std@v1.0.0/mod.ts";
+import { Denops } from "https://deno.land/x/denops_std@v1.0.1/mod.ts";
 import { createHash } from "https://deno.land/std@0.100.0/hash/mod.ts";
 import { existsSync } from "https://deno.land/std@0.101.0/fs/mod.ts";
+import * as vars from "https://deno.land/x/denops_std@v1.0.1/variable/mod.ts";
 
 export class Auth {
   static readonly AUTH_URL: string =
@@ -9,6 +10,17 @@ export class Auth {
     "https://api.rememberthemilk.com/services/rest/";
 
   constructor() {}
+
+  static async getSettings(denops: Denops): Promise<any> {
+    const apiKey: string | null = await vars.g.get(denops, "rtm_api_key");
+    const apiSecretKey: string | null = await vars.g.get(
+      denops,
+      "rtm_secret_key"
+    );
+    const tokenPath: string | null = await vars.g.get(denops, "setting_path");
+
+    return await Promise.resolve({ apiKey, apiSecretKey, tokenPath });
+  }
 
   /**
    * Apiシグニチャを生成する
@@ -194,16 +206,14 @@ export class Auth {
     apiSecretKey: string,
     token: string
   ) {
-    let params: { [index: string]: string } = {
+    const params: { [index: string]: string } = {
       auth_token: token.toString(),
       format: "json",
       method: "rtm.timelines.create",
     };
 
-    // auth_token: "d4a940c20e7d93455fafc082616884e94788b1fa",
-    let apiSig = this.generateApiSig(apiKey, apiSecretKey, params);
+    const apiSig = this.generateApiSig(apiKey, apiSecretKey, params);
 
-    // let l:url = s:rest_url . '?method=rtm.timelines.create&api_key='.g:rtm_api_key .  '&auth_token='.a:token . '&format=json' . '&api_sig='.l:api_sig
     const url: string =
       this.REST_URL +
       "?method=rtm.timelines.create&api_key=" +
@@ -212,7 +222,6 @@ export class Auth {
       token +
       "&format=json&api_sig=" +
       apiSig;
-    // console.log(url);
 
     // let l:json = webapi#http#get(l:url)
     // let l:content = webapi#json#decode(l:json['content'])

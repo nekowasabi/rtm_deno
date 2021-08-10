@@ -5,15 +5,9 @@ import { Auth } from "./auth.ts";
 export async function main(denops: Denops): Promise<void> {
   denops.dispatcher = {
     async echo(text: unknown): Promise<unknown> {
-      // const key = Auth.generateApiSig("aa", "bbb", ["1", "2", "3"]);
-      // console.log(key);
-
-      // const tmp = await Auth.getTokenFromFile("/Users/takets/.rtm_token");
-      // console.log(tmp);
-      //
-      const apiKey = "5b909a70f5054f2fb076a682235c7ee7";
-      const apiSecretKey = "48783977375d19f7";
-      const tokenPath = "/Users/takets/.rtm_token";
+      const { apiKey, apiSecretKey, tokenPath } = await Auth.getSettings(
+        denops
+      );
 
       const token: string = await Auth.generateToken(
         apiKey,
@@ -28,18 +22,33 @@ export async function main(denops: Denops): Promise<void> {
         token
       );
 
-      // let l:save_file = [ l:content['rsp']['auth']['token'] ]
-      // call writefile(l:save_file, g:setting_path)
+      return await Promise.resolve(text);
+    },
 
-      return await Promise.resolve(
-        token + " -- d4a940c20e7d93455fafc082616884e94788b1fa"
+    async addTask(task: unknown): Promise<unknown> {
+      const { apiKey, apiSecretKey, tokenPath } = await Auth.getSettings(
+        denops
       );
+
+      const token: string = await Auth.generateToken(
+        apiKey,
+        apiSecretKey,
+        tokenPath,
+        denops
+      );
+
+      return await Promise.resolve("add task.");
     },
   };
 
   await execute(
     denops,
     `command! -nargs=1 HelloWorldEcho echomsg denops#request('${denops.name}', 'echo', [<q-args>])`
+  );
+
+  await execute(
+    denops,
+    `command! -nargs=1 RtmAddTask echomsg denops#request('${denops.name}', 'addTask', [<q-args>])`
   );
 }
 
