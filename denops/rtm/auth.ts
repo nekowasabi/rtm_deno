@@ -1,7 +1,9 @@
 import { Denops } from "https://deno.land/x/denops_std@v1.0.1/mod.ts";
 import { createHash } from "https://deno.land/std@0.100.0/hash/mod.ts";
 import { existsSync } from "https://deno.land/std@0.101.0/fs/mod.ts";
+import { ensureString } from "https://deno.land/x/unknownutil@v1.0.0/mod.ts";
 import * as vars from "https://deno.land/x/denops_std@v1.0.1/variable/mod.ts";
+import * as fn from "https://deno.land/x/denops_std@v1.0.1/function/mod.ts";
 
 export class Auth {
   static readonly AUTH_URL: string =
@@ -10,6 +12,62 @@ export class Auth {
     "https://api.rememberthemilk.com/services/rest/";
 
   constructor() {}
+
+  /**
+   * タスクを1つ追加する
+   *
+   * @param Denops denops
+   * @return boolean
+   */
+  static async addTask(denops: Denops): Promise<boolean> {
+    const { apiKey, apiSecretKey, tokenPath } = await this.getSettings(denops);
+
+    const token: string = await this.generateToken(
+      apiKey,
+      apiSecretKey,
+      tokenPath,
+      denops
+    );
+
+    const timeline: string = await this.getTimelineFromApi(
+      apiKey,
+      apiSecretKey,
+      token
+    );
+
+    const name: any = await fn.input(denops, "Input task name: ");
+    console.log(name);
+
+    const params: { [index: string]: string } = {
+      auth_token: token,
+      format: "json",
+      method: "rtm.tasks.add",
+      name: name,
+      timeline: timeline,
+    };
+    const apiSig = this.generateApiSig(apiKey, apiSecretKey, params);
+
+    const url =
+      this.REST_URL +
+      "?method=rtm.tasks.add" +
+      "&api_key=" +
+      apiKey +
+      "&auth_token=" +
+      token +
+      "&format=json" +
+      "&name=" +
+      encodeURI(name) +
+      "&timeline=" +
+      timeline +
+      "&api_sig=" +
+      apiSig;
+
+    await fetch(url, { method: "POST" }).then((response) => {
+      console.log(response);
+    });
+
+    return true;
+  }
 
   static async getSettings(denops: Denops): Promise<any> {
     const apiKey: string | null = await vars.g.get(denops, "rtm_api_key");
@@ -61,7 +119,7 @@ export class Auth {
   ): Promise<string> {
     const tokenFromFile = await this.getTokenFromFile(filePath);
     if (tokenFromFile !== undefined)
-      return tokenFromFile.replace(/(\r?\n)$/, "");
+      return Promise.resolve(tokenFromFile.replace(/(\r?\n)$/, ""));
 
     // get frob
     let params: { [index: string]: string } = {
@@ -80,7 +138,7 @@ export class Auth {
     // get token
     params = { format: "json", frob: frob, method: "rtm.auth.getToken" };
     apiSig = this.generateApiSig(apiKey, apiSecretKey, params);
-    return await this.getTokenFromApi(apiSig, apiKey, frob);
+    return Promise.resolve(await this.getTokenFromApi(apiSig, apiKey, frob));
   }
 
   /**
@@ -93,6 +151,19 @@ export class Auth {
     if (!existsSync(filePath)) return undefined;
 
     return await Deno.readTextFile(filePath);
+  }
+
+  /**
+   * ファイルに保存されたトークンを保存する
+   *
+   * @param string filePath .rtm_tokenのファイルパス
+   * @return string | undefined
+   */
+  static saveTokenFromFile(filePath: string, text: string): void {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(text);
+
+    Deno.writeFile(filePath, data);
   }
 
   /**
@@ -223,10 +294,6 @@ export class Auth {
       "&format=json&api_sig=" +
       apiSig;
 
-    // let l:json = webapi#http#get(l:url)
-    // let l:content = webapi#json#decode(l:json['content'])
-    //
-    // return l:content.rsp.timeline
     const res = await fetch(url).then((response) => {
       return response.body?.getReader();
     });
@@ -238,7 +305,6 @@ export class Auth {
     });
 
     const j = JSON.parse(str);
-    console.log(j);
     return j.rsp.timeline;
   }
 }

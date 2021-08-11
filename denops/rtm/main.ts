@@ -1,10 +1,12 @@
 import { Denops } from "https://deno.land/x/denops_std@v1.0.0/mod.ts";
 import { execute } from "https://deno.land/x/denops_std@v1.0.0/helper/mod.ts";
 import { Auth } from "./auth.ts";
+import { existsSync } from "https://deno.land/std@0.101.0/fs/mod.ts";
+import * as fn from "https://deno.land/x/denops_std@v1.0.1/function/mod.ts";
 
 export async function main(denops: Denops): Promise<void> {
   denops.dispatcher = {
-    async echo(text: unknown): Promise<unknown> {
+    async echo(): Promise<unknown> {
       const { apiKey, apiSecretKey, tokenPath } = await Auth.getSettings(
         denops
       );
@@ -15,29 +17,16 @@ export async function main(denops: Denops): Promise<void> {
         tokenPath,
         denops
       );
+      if (!existsSync(tokenPath)) Auth.saveTokenFromFile(tokenPath, token);
 
-      const timeline: string = await Auth.getTimelineFromApi(
-        apiKey,
-        apiSecretKey,
-        token
-      );
-
-      return await Promise.resolve(text);
+      return await Promise.resolve("Authorize complete.");
     },
 
-    async addTask(task: unknown): Promise<unknown> {
-      const { apiKey, apiSecretKey, tokenPath } = await Auth.getSettings(
-        denops
-      );
+    async addTask(): Promise<unknown> {
+      const name = await fn.input(denops, "Input task name: ");
+      console.log(name);
 
-      const token: string = await Auth.generateToken(
-        apiKey,
-        apiSecretKey,
-        tokenPath,
-        denops
-      );
-
-      return await Promise.resolve("add task.");
+      return await Promise.resolve("add task complete.");
     },
   };
 
