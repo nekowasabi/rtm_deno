@@ -1,14 +1,19 @@
-import { Denops } from "https://deno.land/x/denops_std@v1.0.0/mod.ts";
-import { execute } from "https://deno.land/x/denops_std@v1.0.0/helper/mod.ts";
+import { Denops } from "https://deno.land/x/denops_std@v1.0.1/mod.ts";
+import { execute } from "https://deno.land/x/denops_std@v1.0.1/helper/mod.ts";
 // import { Auth } from "./auth.ts";
 // import { existsSync } from "https://deno.land/std@0.101.0/fs/mod.ts";
-import * as fn from "https://deno.land/x/denops_std@v1.0.1/function/mod.ts";
+// import * as fn from "https://deno.land/x/denops_std@v1.0.1/function/mod.ts";
+import * as fn from "https://deno.land/x/denops_std/function/mod.ts";
 
 export async function main(denops: Denops): Promise<void> {
   denops.dispatcher = {
     async echo(): Promise<unknown> {
-      const name = await fn.input(denops, "Input task name: ");
+      const name = await fn.input(denops, " aaa ");
       console.log(name);
+
+      const len = await fn.len(denops, "abcdefg");
+      console.log(len);
+
       // const { apiKey, apiSecretKey, tokenPath } = await Auth.getSettings(
       //   denops
       // );
@@ -21,7 +26,7 @@ export async function main(denops: Denops): Promise<void> {
       // );
       // if (!existsSync(tokenPath)) Auth.saveTokenFromFile(tokenPath, token);
       //
-      return await Promise.resolve("Authorize complete.");
+      return await Promise.resolve(name);
     },
     //
     // async addTask(): Promise<unknown> {
