@@ -1,44 +1,47 @@
 import { Denops } from "https://deno.land/x/denops_std@v1.0.0/mod.ts";
 import { execute } from "https://deno.land/x/denops_std@v1.0.0/helper/mod.ts";
-import { Auth } from "./auth.ts";
-import { existsSync } from "https://deno.land/std@0.101.0/fs/mod.ts";
+// import { Auth } from "./auth.ts";
+// import { existsSync } from "https://deno.land/std@0.101.0/fs/mod.ts";
 import * as fn from "https://deno.land/x/denops_std@v1.0.1/function/mod.ts";
 
 export async function main(denops: Denops): Promise<void> {
   denops.dispatcher = {
     async echo(): Promise<unknown> {
-      const { apiKey, apiSecretKey, tokenPath } = await Auth.getSettings(
-        denops
-      );
-
-      const token: string = await Auth.generateToken(
-        apiKey,
-        apiSecretKey,
-        tokenPath,
-        denops
-      );
-      if (!existsSync(tokenPath)) Auth.saveTokenFromFile(tokenPath, token);
-
-      return await Promise.resolve("Authorize complete.");
-    },
-
-    async addTask(): Promise<unknown> {
       const name = await fn.input(denops, "Input task name: ");
       console.log(name);
-
-      return await Promise.resolve("add task complete.");
+      // const { apiKey, apiSecretKey, tokenPath } = await Auth.getSettings(
+      //   denops
+      // );
+      //
+      // const token: string = await Auth.generateToken(
+      //   apiKey,
+      //   apiSecretKey,
+      //   tokenPath,
+      //   denops
+      // );
+      // if (!existsSync(tokenPath)) Auth.saveTokenFromFile(tokenPath, token);
+      //
+      return await Promise.resolve("Authorize complete.");
     },
+    //
+    // async addTask(): Promise<unknown> {
+    //   let name = await fn.input(denops, "Input task name: ");
+    //   console.log(name);
+    //
+    //   await denops.cmd(`redraw`);
+    //   return await Promise.resolve(name + " add task complete.");
+    // },
   };
 
   await execute(
     denops,
-    `command! -nargs=1 HelloWorldEcho echomsg denops#request('${denops.name}', 'echo', [<q-args>])`
+    `command! -nargs=0 HelloWorldEcho echomsg denops#request('${denops.name}', 'echo', [])`
   );
 
-  await execute(
-    denops,
-    `command! -nargs=1 RtmAddTask echomsg denops#request('${denops.name}', 'addTask', [<q-args>])`
-  );
+  // await execute(
+  //   denops,
+  //   `command! -nargs=0 RtmAddTask echomsg denops#request('${denops.name}', 'addTask', [])`
+  // );
 }
 
 // if (typeof text !== "string") {
