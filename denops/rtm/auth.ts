@@ -35,9 +35,9 @@ export class Auth {
       token
     );
 
-    const name: any = await fn.input(denops, "Input task name: ");
-    console.log(name);
+    const name = await fn.input(denops, "Input task name: ");
 
+    ensureString(name);
     const params: { [index: string]: string } = {
       auth_token: token,
       format: "json",
@@ -62,9 +62,7 @@ export class Auth {
       "&api_sig=" +
       apiSig;
 
-    await fetch(url, { method: "POST" }).then((response) => {
-      console.log(response);
-    });
+    await fetch(url, { method: "POST" });
 
     return true;
   }
