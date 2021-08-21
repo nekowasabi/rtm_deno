@@ -1,11 +1,16 @@
-import { Denops } from "https://deno.land/x/denops_std@v1.0.1/mod.ts";
-import { execute } from "https://deno.land/x/denops_std@v1.0.1/helper/mod.ts";
+import { Denops } from "https://deno.land/x/denops_std@v1.7.4/mod.ts";
+import { execute } from "https://deno.land/x/denops_std@v1.7.4/helper/mod.ts";
 import { Auth } from "./auth.ts";
-import { existsSync } from "https://deno.land/std@0.101.0/fs/mod.ts";
+import { existsSync } from "https://deno.land/std@0.105.0/fs/mod.ts";
+
+import {
+  ensureArray,
+  ensureString,
+} from "https://deno.land/x/unknownutil@v1.1.0/mod.ts";
 
 export async function main(denops: Denops): Promise<void> {
   denops.dispatcher = {
-    async echo(): Promise<unknown> {
+    async auth(): Promise<unknown> {
       const { apiKey, apiSecretKey, tokenPath } = await Auth.getSettings(
         denops
       );
@@ -21,22 +26,37 @@ export async function main(denops: Denops): Promise<void> {
       return await Promise.resolve("Authorized complete.");
     },
 
-    async addTask(): Promise<unknown> {
-      await Auth.addTask(denops);
+    async addTask(task: unknown): Promise<unknown> {
+      ensureString(task);
+      await Auth.addTask(denops, task);
 
       await denops.cmd(`redraw`);
       return await Promise.resolve(" add task complete.");
+    },
+
+    async debug(start: unknown, end: unknown, args: unknown): Promise<any> {
+      const words = await denops.call("getline", start, end);
+      ensureArray(words);
+      words.map((v: unknown) => {
+        ensureString(v);
+        if (v !== "") Auth.addTask(denops, v);
+      });
     },
   };
 
   await execute(
     denops,
-    `command! -nargs=0 HelloWorldEcho echomsg denops#request('${denops.name}', 'echo', [])`
+    `command! -nargs=0 HelloWorldEcho echomsg denops#request('${denops.name}', 'auth', [])`
   );
 
   await execute(
     denops,
-    `command! -nargs=0 RtmAddTask echomsg denops#request('${denops.name}', 'addTask', [])`
+    `command! -nargs=0 RtmAddTask echomsg denops#request('${denops.name}', 'addTask', [""])`
+  );
+
+  await execute(
+    denops,
+    `command! -nargs=* -range Debug echomsg denops#request('${denops.name}', 'debug', [<line1>, <line2>, <f-args>])`
   );
 }
 
@@ -46,7 +66,7 @@ export async function main(denops: Denops): Promise<void> {
 //   );
 // }
 
-// import * as vars from "https://deno.land/x/denops_std@v1.0.0-beta.8/variable/mod.ts";
+// import * as vars from "https://deno.land/x/denops_std@v1.7.4/variable/mod.ts";
 
 // const a = new Auth();
 // fetch("http://www.google.com").then((result) => {

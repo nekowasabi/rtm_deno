@@ -1,9 +1,9 @@
-import { Denops } from "https://deno.land/x/denops_std@v1.0.1/mod.ts";
-import { createHash } from "https://deno.land/std@0.100.0/hash/mod.ts";
-import { existsSync } from "https://deno.land/std@0.101.0/fs/mod.ts";
-import { ensureString } from "https://deno.land/x/unknownutil@v1.0.0/mod.ts";
-import * as vars from "https://deno.land/x/denops_std@v1.0.1/variable/mod.ts";
-import * as fn from "https://deno.land/x/denops_std@v1.0.1/function/mod.ts";
+import { Denops } from "https://deno.land/x/denops_std@v1.7.4/mod.ts";
+import { createHash } from "https://deno.land/std@0.105.0/hash/mod.ts";
+import { existsSync } from "https://deno.land/std@0.105.0/fs/mod.ts";
+import { ensureString } from "https://deno.land/x/unknownutil@v1.1.0/mod.ts";
+import * as vars from "https://deno.land/x/denops_std@v1.7.4/variable/mod.ts";
+import * as fn from "https://deno.land/x/denops_std@v1.7.4/function/mod.ts";
 
 export class Auth {
   static readonly AUTH_URL: string =
@@ -17,9 +17,10 @@ export class Auth {
    * タスクを1つ追加する
    *
    * @param Denops denops
+   * @param string task タスク名
    * @return boolean
    */
-  static async addTask(denops: Denops): Promise<boolean> {
+  static async addTask(denops: Denops, task: string): Promise<boolean> {
     const { apiKey, apiSecretKey, tokenPath } = await this.getSettings(denops);
 
     const token: string = await this.generateToken(
@@ -35,7 +36,13 @@ export class Auth {
       token
     );
 
-    const name = await fn.input(denops, "Input task name: ");
+    console.log(task);
+    let name = "";
+    if (task == "") {
+      name = await fn.input(denops, "Input task name: ");
+    } else {
+      name = task;
+    }
 
     ensureString(name);
     const params: { [index: string]: string } = {
@@ -118,6 +125,7 @@ export class Auth {
     const tokenFromFile = await this.getTokenFromFile(filePath);
     if (tokenFromFile !== undefined)
       return Promise.resolve(tokenFromFile.replace(/(\r?\n)$/, ""));
+    console.log("eeeee");
 
     // get frob
     let params: { [index: string]: string } = {
