@@ -1,7 +1,7 @@
-import { Denops } from "https://deno.land/x/denops_std@v1.7.4/mod.ts";
-import { execute } from "https://deno.land/x/denops_std@v1.7.4/helper/mod.ts";
+import { Denops } from "https://deno.land/x/denops_std@v1.8.1/mod.ts";
+import { execute } from "https://deno.land/x/denops_std@v1.8.1/helper/mod.ts";
 import { Auth } from "./auth.ts";
-import { existsSync } from "https://deno.land/std@0.105.0/fs/mod.ts";
+import { existsSync } from "https://deno.land/std@0.106.0/fs/mod.ts";
 
 import {
   ensureArray,
@@ -34,13 +34,25 @@ export async function main(denops: Denops): Promise<void> {
       return await Promise.resolve(" add task complete.");
     },
 
-    async debug(start: unknown, end: unknown, args: unknown): Promise<any> {
+    async addSelectedTask(
+      start: unknown,
+      end: unknown,
+      _args: unknown
+    ): Promise<void> {
       const words = await denops.call("getline", start, end);
       ensureArray(words);
-      words.map((v: unknown) => {
-        ensureString(v);
-        if (v !== "") Auth.addTask(denops, v);
-      });
+
+      for (const word of words) {
+        ensureString(word);
+        if (word !== "") {
+          await Auth.addTask(denops, word);
+          await denops.cmd(`redraw`);
+        }
+      }
+    },
+
+    async debug(): Promise<void> {
+      console.log("ok");
     },
   };
 
@@ -56,7 +68,12 @@ export async function main(denops: Denops): Promise<void> {
 
   await execute(
     denops,
-    `command! -nargs=* -range Debug echomsg denops#request('${denops.name}', 'debug', [<line1>, <line2>, <f-args>])`
+    `command! -nargs=* -range RtmAddSelectedTask echomsg denops#request('${denops.name}', 'addSelectedTask', [<line1>, <line2>, <f-args>])`
+  );
+
+  await execute(
+    denops,
+    `command! -nargs=* -range Debug echomsg denops#request('${denops.name}', 'debug', [])`
   );
 }
 
@@ -66,7 +83,7 @@ export async function main(denops: Denops): Promise<void> {
 //   );
 // }
 
-// import * as vars from "https://deno.land/x/denops_std@v1.7.4/variable/mod.ts";
+// import * as vars from "https://deno.land/x/denops_std@v1.8.1/variable/mod.ts";
 
 // const a = new Auth();
 // fetch("http://www.google.com").then((result) => {

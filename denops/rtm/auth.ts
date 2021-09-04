@@ -1,9 +1,9 @@
-import { Denops } from "https://deno.land/x/denops_std@v1.7.4/mod.ts";
-import { createHash } from "https://deno.land/std@0.105.0/hash/mod.ts";
-import { existsSync } from "https://deno.land/std@0.105.0/fs/mod.ts";
+import { Denops } from "https://deno.land/x/denops_std@v1.8.1/mod.ts";
+import { createHash } from "https://deno.land/std@0.106.0/hash/mod.ts";
+import { existsSync } from "https://deno.land/std@0.106.0/fs/mod.ts";
 import { ensureString } from "https://deno.land/x/unknownutil@v1.1.0/mod.ts";
-import * as vars from "https://deno.land/x/denops_std@v1.7.4/variable/mod.ts";
-import * as fn from "https://deno.land/x/denops_std@v1.7.4/function/mod.ts";
+import * as vars from "https://deno.land/x/denops_std@v1.8.1/variable/mod.ts";
+import * as fn from "https://deno.land/x/denops_std@v1.8.1/function/mod.ts";
 
 export class Auth {
   static readonly AUTH_URL: string =
@@ -69,7 +69,13 @@ export class Auth {
       "&api_sig=" +
       apiSig;
 
+    const wait = async (ms: any) =>
+      new Promise((resolve) => setTimeout(resolve, ms));
+    wait(2000);
+
+    wait(2000);
     await fetch(url, { method: "POST" });
+    wait(2000);
 
     return true;
   }
@@ -310,6 +316,7 @@ export class Auth {
       return d.decode(value).toString();
     });
 
+    if (!str) return "no";
     const j = JSON.parse(str);
     return j.rsp.timeline;
   }
