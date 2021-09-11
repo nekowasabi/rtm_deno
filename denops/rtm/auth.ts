@@ -14,10 +14,10 @@ export class Auth {
   constructor() {}
 
   /**
-   * タスクを1つ追加する
+   * Add single task
    *
    * @param Denops denops
-   * @param string task タスク名
+   * @param string task task name
    * @return boolean
    */
   static async addTask(denops: Denops, task: string): Promise<boolean> {
@@ -37,14 +37,14 @@ export class Auth {
     );
 
     const name =
-      task == "" ? await fn.input(denops, "Input task name: ") : task;
+      task == "" ? await fn.input(denops, "Input task name: ") : task.trim();
 
     ensureString(name);
     const params: { [index: string]: string } = {
       auth_token: token,
       format: "json",
       method: "rtm.tasks.add",
-      name: name,
+      name: name.trim(),
       parse: "1",
       timeline: timeline,
     };
@@ -59,7 +59,7 @@ export class Auth {
       token +
       "&format=json" +
       "&name=" +
-      encodeURI(name) +
+      encodeURIComponent(name) +
       "&parse=1" +
       "&timeline=" +
       timeline +
@@ -82,11 +82,11 @@ export class Auth {
   }
 
   /**
-   * Apiシグニチャを生成する
+   * Generate Api signiture
    *
-   * @param string apiKey RTMのAPIキー
-   * @param string apiSecretKey RTMRTMのシークレットAPIキー
-   * @param string[] params APIに投げるパラメータ
+   * @param string apiKey RTM API key
+   * @param string apiSecretKey RTM Secret API key
+   * @param string[] params
    * @return string
    */
   static generateApiSig(
@@ -104,11 +104,12 @@ export class Auth {
   }
 
   /**
-   * APIトークンを生成する
+   * Generate API token
    *
    * @param string apiKey RTMのAPIキー
-   * @param string apiSecretKey RTMRTMのシークレットAPIキー
-   * @param string filePath .rtm_tokenのファイルパス
+   * @param string apiKey RTM API key
+   * @param string apiSecretKey RTM Secret API key
+   * @param string filePath file path for .rtm_token
    * @param Denops denops
    * @return string
    */
@@ -143,9 +144,9 @@ export class Auth {
   }
 
   /**
-   * ファイルに保存されたトークンを取得する
+   * Get token from file
    *
-   * @param string filePath .rtm_tokenのファイルパス
+   * @param string filePath file path for .rtm_token
    * @return string | undefined
    */
   static async getTokenFromFile(filePath: string) {
@@ -155,9 +156,9 @@ export class Auth {
   }
 
   /**
-   * ファイルに保存されたトークンを保存する
+   * Save token to file.
    *
-   * @param string filePath .rtm_tokenのファイルパス
+   * @param string filePath file path for .rtm_token
    * @return string | undefined
    */
   static saveTokenFromFile(filePath: string, text: string): void {
@@ -168,10 +169,10 @@ export class Auth {
   }
 
   /**
-   * Frobを生成する
+   * Generate frob
    *
-   * @param string apiSig Frob用のAPIシグニチャ
-   * @param string apiKey RTMのAPIキー
+   * @param string apiSig API signiture for frob
+   * @param string apiKey RTM API key
    * @return string
    */
   static async getFrob(apiSig: string, apiKey: string): Promise<string> {
@@ -197,11 +198,11 @@ export class Auth {
   }
 
   /**
-   * 認証処理をする
+   * Authorize
    *
-   * @param string apiSig Frob用のAPIシグニチャ
-   * @param string apiKey RTMのAPIキー
-   * @param string frob RTMのfrob
+   * @param string apiSig API signiture for frob
+   * @param string apiKey RTM API key
+   * @param string frob frob for RTM
    * @param Denops denops
    * @return void
    */
@@ -230,11 +231,11 @@ export class Auth {
   }
 
   /**
-   * APIからトークンを取得する
+   * Get token from API
    *
-   * @param string apiSig Frob用のAPIシグニチャ
-   * @param string apiKey RTMのAPIキー
-   * @param string frob RTMのfrob
+   * @param string apiSig API signiture for frob
+   * @param string apiKey RTM API key
+   * @param string frob
    * @return void
    */
   static async getTokenFromApi(
@@ -266,11 +267,11 @@ export class Auth {
   }
 
   /**
-   * ログイントークンからタイムライントークンを生成する
+   * Generate timeline token
    *
-   * @param string apiKey RTMのAPIキー
-   * @param string apiSecretKey RTMRTMのシークレットAPIキー
-   * @param string token RTMのトークン
+   * @param string apiKey RTM API key
+   * @param string apiSecretKey RTM Secret API key
+   * @param string token token for RTM
    * @return string
    */
   static async getTimelineFromApi(
