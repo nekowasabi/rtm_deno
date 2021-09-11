@@ -36,13 +36,8 @@ export class Auth {
       token
     );
 
-    console.log(task);
-    let name = "";
-    if (task == "") {
-      name = await fn.input(denops, "Input task name: ");
-    } else {
-      name = task;
-    }
+    const name =
+      task == "" ? await fn.input(denops, "Input task name: ") : task;
 
     ensureString(name);
     const params: { [index: string]: string } = {
@@ -50,6 +45,7 @@ export class Auth {
       format: "json",
       method: "rtm.tasks.add",
       name: name,
+      parse: "1",
       timeline: timeline,
     };
     const apiSig = this.generateApiSig(apiKey, apiSecretKey, params);
@@ -64,6 +60,7 @@ export class Auth {
       "&format=json" +
       "&name=" +
       encodeURI(name) +
+      "&parse=1" +
       "&timeline=" +
       timeline +
       "&api_sig=" +
@@ -124,7 +121,6 @@ export class Auth {
     const tokenFromFile = await this.getTokenFromFile(filePath);
     if (tokenFromFile !== undefined)
       return Promise.resolve(tokenFromFile.replace(/(\r?\n)$/, ""));
-    console.log("eeeee");
 
     // get frob
     let params: { [index: string]: string } = {
