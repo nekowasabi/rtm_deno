@@ -5,6 +5,12 @@ import { ensureString } from "https://deno.land/x/unknownutil@v1.1.0/mod.ts";
 import * as vars from "https://deno.land/x/denops_std@v1.9.1/variable/mod.ts";
 import * as fn from "https://deno.land/x/denops_std@v1.9.1/function/mod.ts";
 
+type ApiSetting = {
+  apiKey: string;
+  apiSecretKey: string;
+  tokenPath: string;
+};
+
 export class Auth {
   static readonly AUTH_URL: string =
     "http://www.rememberthemilk.com/services/auth/";
@@ -70,13 +76,18 @@ export class Auth {
     return true;
   }
 
-  static async getSettings(denops: Denops): Promise<any> {
-    const apiKey: string | null = await vars.g.get(denops, "rtm_api_key");
-    const apiSecretKey: string | null = await vars.g.get(
-      denops,
-      "rtm_secret_key"
-    );
-    const tokenPath: string | null = await vars.g.get(denops, "setting_path");
+  static async getSettings(denops: Denops): Promise<ApiSetting> {
+    let tmp = await vars.g.get(denops, "rtm_api_key");
+    ensureString(tmp);
+    const apiKey: string = tmp;
+
+    tmp = await vars.g.get(denops, "rtm_secret_key");
+    ensureString(tmp);
+    const apiSecretKey: string = tmp;
+
+    tmp = await vars.g.get(denops, "setting_path");
+    ensureString(tmp);
+    const tokenPath: string = tmp;
 
     return await Promise.resolve({ apiKey, apiSecretKey, tokenPath });
   }
