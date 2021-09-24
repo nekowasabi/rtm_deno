@@ -1,12 +1,11 @@
-import { Denops } from "https://deno.land/x/denops_std@v1.9.1/mod.ts";
-import { execute } from "https://deno.land/x/denops_std@v1.9.1/helper/mod.ts";
+import { Denops } from "https://deno.land/x/denops_std@v2.0.0/mod.ts";
+import { execute } from "https://deno.land/x/denops_std@v2.0.0/helper/mod.ts";
 import { Auth } from "./auth.ts";
-import { existsSync } from "https://deno.land/std@0.106.0/fs/mod.ts";
-
+import { existsSync } from "https://deno.land/std@0.108.0/fs/mod.ts";
 import {
   ensureArray,
   ensureString,
-} from "https://deno.land/x/unknownutil@v1.1.0/mod.ts";
+} from "https://deno.land/x/unknownutil@v1.1.2/mod.ts";
 
 export async function main(denops: Denops): Promise<void> {
   denops.dispatcher = {
