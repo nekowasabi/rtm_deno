@@ -11,13 +11,13 @@ Plug 'vim-denops/denops.vim'
 Plug 'nekowasabi/rtm_deno'
 ```
 
-## usage
-### authorize
+## Usage
+### Authorize
 Get RTM's token by `:RtmAuth` command.
 
-### add single task
+### Add single task
 Use `:RtmAddTask` command.
 
-### add multiple tasks
+### Add multiple tasks
 Select text by visual mode.
 And execute `:RtmAddSelectedTask` command.
