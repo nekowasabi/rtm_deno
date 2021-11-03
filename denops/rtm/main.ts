@@ -55,7 +55,7 @@ export async function main(denops: Denops): Promise<void> {
 
   await execute(
     denops,
-    `command! -nargs=0 HelloWorldEcho echomsg denops#request('${denops.name}', 'auth', [])`
+    `command! -nargs=0 RtmAuth echomsg denops#request('${denops.name}', 'auth', [])`
   );
 
   await execute(
