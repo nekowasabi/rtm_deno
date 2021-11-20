@@ -1,9 +1,9 @@
-import { Denops } from "https://deno.land/x/denops_std@v2.0.0/mod.ts";
-import { createHash } from "https://deno.land/std@0.108.0/hash/mod.ts";
-import { existsSync } from "https://deno.land/std@0.108.0/fs/mod.ts";
-import { ensureString } from "https://deno.land/x/unknownutil@v1.1.2/mod.ts";
-import * as vars from "https://deno.land/x/denops_std@v2.0.0/variable/mod.ts";
-import * as fn from "https://deno.land/x/denops_std@v2.0.0/function/mod.ts";
+import { Denops } from "https://deno.land/x/denops_std@v2.2.0/mod.ts";
+import { createHash } from "https://deno.land/std@0.115.1/hash/mod.ts";
+import { existsSync } from "https://deno.land/std@0.115.1/fs/mod.ts";
+import { ensureString } from "https://deno.land/x/unknownutil@v1.1.4/mod.ts";
+import * as vars from "https://deno.land/x/denops_std@v2.2.0/variable/mod.ts";
+import * as fn from "https://deno.land/x/denops_std@v2.2.0/function/mod.ts";
 
 type ApiSetting = {
   apiKey: string;
