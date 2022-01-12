@@ -1,5 +1,5 @@
-import { assertEquals } from "https://deno.land/x/denops_std@v2.2.0/deps_test.ts";
-import { test } from "https://deno.land/x/denops_std@v2.2.0/deps_test.ts";
+import { assertEquals } from "https://deno.land/x/denops_std@v2.4.0/deps_test.ts";
+import { test } from "https://deno.land/x/denops_std@v2.4.0/deps_test.ts";
 import { Auth } from "../rtm/auth.ts";
 
 test({

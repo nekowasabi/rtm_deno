@@ -1,7 +1,6 @@
-import { Denops } from "https://deno.land/x/denops_std@v2.2.0/mod.ts";
-import { execute } from "https://deno.land/x/denops_std@v2.2.0/helper/mod.ts";
+import { Denops } from "https://deno.land/x/denops_std@v2.4.0/mod.ts";
+import { execute } from "https://deno.land/x/denops_std@v2.4.0/helper/mod.ts";
 import { Auth } from "./auth.ts";
-import { existsSync } from "https://deno.land/std@0.115.1/fs/mod.ts";
 import {
   ensureArray,
   ensureString,
@@ -20,7 +19,12 @@ export async function main(denops: Denops): Promise<void> {
         tokenPath,
         denops
       );
-      if (!existsSync(tokenPath)) Auth.saveTokenFromFile(tokenPath, token);
+
+      try {
+        Auth.saveTokenFromFile(tokenPath, token);
+      } catch (e) {
+        console.error(e);
+      }
 
       return await Promise.resolve("Authorized complete.");
     },
