@@ -30,18 +30,18 @@ export async function main(denops: Denops): Promise<void> {
     },
 
     async addTask(task: unknown): Promise<unknown> {
-      ensureString(task);
-      await Auth.addTask(denops, task);
+      const taskName = task ? String(task) : "";
+      await Auth.addTask(denops, taskName);
 
       await denops.cmd(`redraw`);
       return await Promise.resolve(" add task complete.");
     },
 
-    async addSelectedTask(
-      start: unknown,
-      end: unknown,
-      _args: unknown,
-    ): Promise<void> {
+    async addSelectedTask(...args: unknown[]): Promise<void> {
+      if (args.length < 2) {
+        throw new Error("addSelectedTask requires at least 2 arguments: start, end");
+      }
+      const [start, end] = args;
       const words = await denops.call("getline", start, end);
       ensureArray(words);
 
@@ -55,8 +55,8 @@ export async function main(denops: Denops): Promise<void> {
     },
 
     async getTaskList(filter: unknown): Promise<unknown> {
-      ensureString(filter);
-      const result = await Auth.getTaskList(denops, filter || "");
+      const filterStr = filter ? String(filter) : "";
+      const result = await Auth.getTaskList(denops, filterStr);
       console.log(JSON.stringify(result, null, 2));
       return Promise.resolve("Task list retrieved.");
     },
@@ -88,11 +88,21 @@ export async function main(denops: Denops): Promise<void> {
       return Promise.resolve("Task uncompleted.");
     },
 
-    async setTaskName(listId: unknown, taskseriesId: unknown, taskId: unknown, name: unknown): Promise<unknown> {
+    async setTaskName(...args: unknown[]): Promise<unknown> {
+      if (args.length < 4) {
+        throw new Error("setTaskName requires 4 arguments: listId, taskseriesId, taskId, name");
+      }
+      const [listId, taskseriesId, taskId, ...nameParts] = args;
       ensureString(listId);
       ensureString(taskseriesId);
       ensureString(taskId);
-      ensureString(name);
+      
+      // Join remaining arguments as task name (in case the name contains spaces)
+      const name = nameParts.map(part => {
+        ensureString(part);
+        return part;
+      }).join(" ");
+      
       await Auth.setTaskName(denops, listId, taskseriesId, taskId, name);
       await denops.cmd(`redraw`);
       return Promise.resolve("Task name updated.");
@@ -108,11 +118,21 @@ export async function main(denops: Denops): Promise<void> {
       return Promise.resolve("Task priority updated.");
     },
 
-    async setTaskDueDate(listId: unknown, taskseriesId: unknown, taskId: unknown, due: unknown): Promise<unknown> {
+    async setTaskDueDate(...args: unknown[]): Promise<unknown> {
+      if (args.length < 4) {
+        throw new Error("setTaskDueDate requires 4 arguments: listId, taskseriesId, taskId, due");
+      }
+      const [listId, taskseriesId, taskId, ...dueParts] = args;
       ensureString(listId);
       ensureString(taskseriesId);
       ensureString(taskId);
-      ensureString(due);
+      
+      // Join remaining arguments as due date (in case it contains spaces like "next week")
+      const due = dueParts.map(part => {
+        ensureString(part);
+        return part;
+      }).join(" ");
+      
       await Auth.setTaskDueDate(denops, listId, taskseriesId, taskId, due);
       await denops.cmd(`redraw`);
       return Promise.resolve("Task due date updated.");
@@ -123,56 +143,56 @@ export async function main(denops: Denops): Promise<void> {
 
   await execute(
     denops,
-    `command! -nargs=0 RtmAuth echomsg denops#request('${denops.name}', 'auth', [])`,
+    `command! -nargs=0 RtmAuth call denops#notify('${denops.name}', 'auth', [])`,
   );
 
   await execute(
     denops,
-    `command! -nargs=0 RtmAddTask echomsg denops#request('${denops.name}', 'addTask', [""])`,
+    `command! -nargs=? RtmAddTask call denops#notify('${denops.name}', 'addTask', [<q-args>])`,
   );
 
   await execute(
     denops,
-    `command! -nargs=* -range RtmAddSelectedTask echomsg denops#request('${denops.name}', 'addSelectedTask', [<line1>, <line2>, <f-args>])`,
+    `command! -nargs=* -range RtmAddSelectedTask call denops#notify('${denops.name}', 'addSelectedTask', [<line1>, <line2>] + [<f-args>])`,
   );
 
   await execute(
     denops,
-    `command! -nargs=? RtmGetTaskList echomsg denops#request('${denops.name}', 'getTaskList', [<q-args>])`,
+    `command! -nargs=? RtmGetTaskList call denops#notify('${denops.name}', 'getTaskList', [<q-args>])`,
   );
 
   await execute(
     denops,
-    `command! -nargs=3 RtmDeleteTask echomsg denops#request('${denops.name}', 'deleteTask', [<f-args>])`,
+    `command! -nargs=3 RtmDeleteTask call denops#notify('${denops.name}', 'deleteTask', [<f-args>])`,
   );
 
   await execute(
     denops,
-    `command! -nargs=3 RtmCompleteTask echomsg denops#request('${denops.name}', 'completeTask', [<f-args>])`,
+    `command! -nargs=3 RtmCompleteTask call denops#notify('${denops.name}', 'completeTask', [<f-args>])`,
   );
 
   await execute(
     denops,
-    `command! -nargs=3 RtmUncompleteTask echomsg denops#request('${denops.name}', 'uncompleteTask', [<f-args>])`,
+    `command! -nargs=3 RtmUncompleteTask call denops#notify('${denops.name}', 'uncompleteTask', [<f-args>])`,
   );
 
   await execute(
     denops,
-    `command! -nargs=+ RtmSetTaskName echomsg denops#request('${denops.name}', 'setTaskName', [<f-args>])`,
+    `command! -nargs=+ RtmSetTaskName call denops#notify('${denops.name}', 'setTaskName', [<f-args>])`,
   );
 
   await execute(
     denops,
-    `command! -nargs=4 RtmSetTaskPriority echomsg denops#request('${denops.name}', 'setTaskPriority', [<f-args>])`,
+    `command! -nargs=4 RtmSetTaskPriority call denops#notify('${denops.name}', 'setTaskPriority', [<f-args>])`,
   );
 
   await execute(
     denops,
-    `command! -nargs=+ RtmSetTaskDueDate echomsg denops#request('${denops.name}', 'setTaskDueDate', [<f-args>])`,
+    `command! -nargs=+ RtmSetTaskDueDate call denops#notify('${denops.name}', 'setTaskDueDate', [<f-args>])`,
   );
 
   await execute(
     denops,
-    `command! -nargs=* -range Debug echomsg denops#request('${denops.name}', 'debug', [])`,
+    `command! -nargs=* -range Debug call denops#notify('${denops.name}', 'debug', [])`,
   );
 }
