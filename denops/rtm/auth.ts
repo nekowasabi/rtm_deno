@@ -33,17 +33,18 @@ export class Auth {
       apiKey,
       apiSecretKey,
       tokenPath,
-      denops
+      denops,
     );
 
     const timeline: string = await this.getTimelineFromApi(
       apiKey,
       apiSecretKey,
-      token
+      token,
     );
 
-    const name =
-      task == "" ? await fn.input(denops, "Input task name: ") : task.trim();
+    const name = task == ""
+      ? await fn.input(denops, "Input task name: ")
+      : task.trim();
 
     ensureString(name);
     const params: { [index: string]: string } = {
@@ -56,8 +57,7 @@ export class Auth {
     };
     const apiSig = this.generateApiSig(apiKey, apiSecretKey, params);
 
-    const url =
-      this.REST_URL +
+    const url = this.REST_URL +
       "?method=rtm.tasks.add" +
       "&api_key=" +
       apiKey +
@@ -77,17 +77,27 @@ export class Auth {
   }
 
   static async getSettings(denops: Denops): Promise<ApiSetting> {
-    let tmp = await vars.g.get(denops, "rtm_api_key");
-    ensureString(tmp);
-    const apiKey: string = tmp;
+    // Try environment variables first, then fall back to vim variables
+    let apiKey = Deno.env.get("RTM_API_KEY");
+    if (!apiKey) {
+      let tmp = await vars.g.get(denops, "rtm_api_key");
+      ensureString(tmp);
+      apiKey = tmp;
+    }
 
-    tmp = await vars.g.get(denops, "rtm_secret_key");
-    ensureString(tmp);
-    const apiSecretKey: string = tmp;
+    let apiSecretKey = Deno.env.get("RTM_SECRET_KEY");
+    if (!apiSecretKey) {
+      let tmp = await vars.g.get(denops, "rtm_secret_key");
+      ensureString(tmp);
+      apiSecretKey = tmp;
+    }
 
-    tmp = await vars.g.get(denops, "setting_path");
-    ensureString(tmp);
-    const tokenPath: string = tmp;
+    let tokenPath = Deno.env.get("RTM_TOKEN_PATH");
+    if (!tokenPath) {
+      let tmp = await vars.g.get(denops, "setting_path");
+      ensureString(tmp);
+      tokenPath = tmp;
+    }
 
     return await Promise.resolve({ apiKey, apiSecretKey, tokenPath });
   }
@@ -103,7 +113,7 @@ export class Auth {
   static generateApiSig(
     apiKey: string,
     apiSecretKey: string,
-    params: { [index: string]: string }
+    params: { [index: string]: string },
   ): string {
     let p = "";
     for (const [attr, value] of Object.entries(params)) {
@@ -128,11 +138,18 @@ export class Auth {
     apiKey: string,
     apiSecretKey: string,
     filePath: string,
-    denops: Denops
+    denops: Denops,
   ): Promise<string> {
+    // Try environment variable first
+    const tokenFromEnv = Deno.env.get("RTM_TOKEN");
+    if (tokenFromEnv) {
+      return Promise.resolve(tokenFromEnv);
+    }
+
     const tokenFromFile = await this.getTokenFromFile(filePath);
-    if (tokenFromFile !== undefined)
+    if (tokenFromFile !== undefined) {
       return Promise.resolve(tokenFromFile.replace(/(\r?\n)$/, ""));
+    }
 
     // get frob
     let params: { [index: string]: string } = {
@@ -187,8 +204,7 @@ export class Auth {
    * @return string
    */
   static async getFrob(apiSig: string, apiKey: string): Promise<string> {
-    const url =
-      this.REST_URL +
+    const url = this.REST_URL +
       "?method=rtm.auth.getFrob&api_key=" +
       apiKey +
       "&format=json" +
@@ -221,10 +237,9 @@ export class Auth {
     apiSig: string,
     apiKey: string,
     frob: string,
-    denops: Denops
+    denops: Denops,
   ): Promise<void> {
-    const url: string =
-      this.AUTH_URL +
+    const url: string = this.AUTH_URL +
       "?api_key=" +
       apiKey +
       "&frob=" +
@@ -237,7 +252,7 @@ export class Auth {
 
     await denops.call(
       "input",
-      "If authorization in browser, enter return key : "
+      "If authorization in browser, enter return key : ",
     );
   }
 
@@ -252,10 +267,9 @@ export class Auth {
   static async getTokenFromApi(
     apiSig: string,
     apiKey: string,
-    frob: string
+    frob: string,
   ): Promise<string> {
-    const url =
-      this.REST_URL +
+    const url = this.REST_URL +
       "?method=rtm.auth.getToken&api_key=" +
       apiKey +
       "&format=json" +
@@ -288,7 +302,7 @@ export class Auth {
   static async getTimelineFromApi(
     apiKey: string,
     apiSecretKey: string,
-    token: string
+    token: string,
   ) {
     const params: { [index: string]: string } = {
       auth_token: token.toString(),
@@ -298,8 +312,7 @@ export class Auth {
 
     const apiSig = this.generateApiSig(apiKey, apiSecretKey, params);
 
-    const url: string =
-      this.REST_URL +
+    const url: string = this.REST_URL +
       "?method=rtm.timelines.create&api_key=" +
       apiKey +
       "&auth_token=" +
@@ -320,5 +333,415 @@ export class Auth {
     if (!str) return "no";
     const j = JSON.parse(str);
     return j.rsp.timeline;
+  }
+
+  /**
+   * Get task list
+   *
+   * @param Denops denops
+   * @param string filter optional filter for tasks
+   * @return object
+   */
+  static async getTaskList(denops: Denops, filter = ""): Promise<any> {
+    const { apiKey, apiSecretKey, tokenPath } = await this.getSettings(denops);
+
+    const token: string = await this.generateToken(
+      apiKey,
+      apiSecretKey,
+      tokenPath,
+      denops,
+    );
+
+    const params: { [index: string]: string } = {
+      auth_token: token,
+      format: "json",
+      method: "rtm.tasks.getList",
+    };
+
+    if (filter) {
+      params.filter = filter;
+    }
+
+    const apiSig = this.generateApiSig(apiKey, apiSecretKey, params);
+
+    let url = this.REST_URL +
+      "?method=rtm.tasks.getList" +
+      "&api_key=" +
+      apiKey +
+      "&auth_token=" +
+      token +
+      "&format=json" +
+      "&api_sig=" +
+      apiSig;
+
+    if (filter) {
+      url += "&filter=" + encodeURIComponent(filter);
+    }
+
+    const response = await fetch(url);
+    const text = await response.text();
+    return JSON.parse(text);
+  }
+
+  /**
+   * Delete task
+   *
+   * @param Denops denops
+   * @param string listId list ID
+   * @param string taskseries_id task series ID
+   * @param string task_id task ID
+   * @return boolean
+   */
+  static async deleteTask(denops: Denops, listId: string, taskseriesId: string, taskId: string): Promise<boolean> {
+    const { apiKey, apiSecretKey, tokenPath } = await this.getSettings(denops);
+
+    const token: string = await this.generateToken(
+      apiKey,
+      apiSecretKey,
+      tokenPath,
+      denops,
+    );
+
+    const timeline: string = await this.getTimelineFromApi(
+      apiKey,
+      apiSecretKey,
+      token,
+    );
+
+    const params: { [index: string]: string } = {
+      auth_token: token,
+      format: "json",
+      list_id: listId,
+      method: "rtm.tasks.delete",
+      task_id: taskId,
+      taskseries_id: taskseriesId,
+      timeline: timeline,
+    };
+    const apiSig = this.generateApiSig(apiKey, apiSecretKey, params);
+
+    const url = this.REST_URL +
+      "?method=rtm.tasks.delete" +
+      "&api_key=" +
+      apiKey +
+      "&auth_token=" +
+      token +
+      "&format=json" +
+      "&list_id=" +
+      listId +
+      "&taskseries_id=" +
+      taskseriesId +
+      "&task_id=" +
+      taskId +
+      "&timeline=" +
+      timeline +
+      "&api_sig=" +
+      apiSig;
+
+    await fetch(url, { method: "POST" });
+    return true;
+  }
+
+  /**
+   * Complete task
+   *
+   * @param Denops denops
+   * @param string listId list ID
+   * @param string taskseries_id task series ID
+   * @param string task_id task ID
+   * @return boolean
+   */
+  static async completeTask(denops: Denops, listId: string, taskseriesId: string, taskId: string): Promise<boolean> {
+    const { apiKey, apiSecretKey, tokenPath } = await this.getSettings(denops);
+
+    const token: string = await this.generateToken(
+      apiKey,
+      apiSecretKey,
+      tokenPath,
+      denops,
+    );
+
+    const timeline: string = await this.getTimelineFromApi(
+      apiKey,
+      apiSecretKey,
+      token,
+    );
+
+    const params: { [index: string]: string } = {
+      auth_token: token,
+      format: "json",
+      list_id: listId,
+      method: "rtm.tasks.complete",
+      task_id: taskId,
+      taskseries_id: taskseriesId,
+      timeline: timeline,
+    };
+    const apiSig = this.generateApiSig(apiKey, apiSecretKey, params);
+
+    const url = this.REST_URL +
+      "?method=rtm.tasks.complete" +
+      "&api_key=" +
+      apiKey +
+      "&auth_token=" +
+      token +
+      "&format=json" +
+      "&list_id=" +
+      listId +
+      "&taskseries_id=" +
+      taskseriesId +
+      "&task_id=" +
+      taskId +
+      "&timeline=" +
+      timeline +
+      "&api_sig=" +
+      apiSig;
+
+    await fetch(url, { method: "POST" });
+    return true;
+  }
+
+  /**
+   * Uncomplete task
+   *
+   * @param Denops denops
+   * @param string listId list ID
+   * @param string taskseries_id task series ID
+   * @param string task_id task ID
+   * @return boolean
+   */
+  static async uncompleteTask(denops: Denops, listId: string, taskseriesId: string, taskId: string): Promise<boolean> {
+    const { apiKey, apiSecretKey, tokenPath } = await this.getSettings(denops);
+
+    const token: string = await this.generateToken(
+      apiKey,
+      apiSecretKey,
+      tokenPath,
+      denops,
+    );
+
+    const timeline: string = await this.getTimelineFromApi(
+      apiKey,
+      apiSecretKey,
+      token,
+    );
+
+    const params: { [index: string]: string } = {
+      auth_token: token,
+      format: "json",
+      list_id: listId,
+      method: "rtm.tasks.uncomplete",
+      task_id: taskId,
+      taskseries_id: taskseriesId,
+      timeline: timeline,
+    };
+    const apiSig = this.generateApiSig(apiKey, apiSecretKey, params);
+
+    const url = this.REST_URL +
+      "?method=rtm.tasks.uncomplete" +
+      "&api_key=" +
+      apiKey +
+      "&auth_token=" +
+      token +
+      "&format=json" +
+      "&list_id=" +
+      listId +
+      "&taskseries_id=" +
+      taskseriesId +
+      "&task_id=" +
+      taskId +
+      "&timeline=" +
+      timeline +
+      "&api_sig=" +
+      apiSig;
+
+    await fetch(url, { method: "POST" });
+    return true;
+  }
+
+  /**
+   * Update task name
+   *
+   * @param Denops denops
+   * @param string listId list ID
+   * @param string taskseries_id task series ID
+   * @param string task_id task ID
+   * @param string name new task name
+   * @return boolean
+   */
+  static async setTaskName(denops: Denops, listId: string, taskseriesId: string, taskId: string, name: string): Promise<boolean> {
+    const { apiKey, apiSecretKey, tokenPath } = await this.getSettings(denops);
+
+    const token: string = await this.generateToken(
+      apiKey,
+      apiSecretKey,
+      tokenPath,
+      denops,
+    );
+
+    const timeline: string = await this.getTimelineFromApi(
+      apiKey,
+      apiSecretKey,
+      token,
+    );
+
+    const params: { [index: string]: string } = {
+      auth_token: token,
+      format: "json",
+      list_id: listId,
+      method: "rtm.tasks.setName",
+      name: name,
+      task_id: taskId,
+      taskseries_id: taskseriesId,
+      timeline: timeline,
+    };
+    const apiSig = this.generateApiSig(apiKey, apiSecretKey, params);
+
+    const url = this.REST_URL +
+      "?method=rtm.tasks.setName" +
+      "&api_key=" +
+      apiKey +
+      "&auth_token=" +
+      token +
+      "&format=json" +
+      "&list_id=" +
+      listId +
+      "&taskseries_id=" +
+      taskseriesId +
+      "&task_id=" +
+      taskId +
+      "&name=" +
+      encodeURIComponent(name) +
+      "&timeline=" +
+      timeline +
+      "&api_sig=" +
+      apiSig;
+
+    await fetch(url, { method: "POST" });
+    return true;
+  }
+
+  /**
+   * Set task priority
+   *
+   * @param Denops denops
+   * @param string listId list ID
+   * @param string taskseries_id task series ID
+   * @param string task_id task ID
+   * @param string priority priority (N, 1, 2, 3)
+   * @return boolean
+   */
+  static async setTaskPriority(denops: Denops, listId: string, taskseriesId: string, taskId: string, priority: string): Promise<boolean> {
+    const { apiKey, apiSecretKey, tokenPath } = await this.getSettings(denops);
+
+    const token: string = await this.generateToken(
+      apiKey,
+      apiSecretKey,
+      tokenPath,
+      denops,
+    );
+
+    const timeline: string = await this.getTimelineFromApi(
+      apiKey,
+      apiSecretKey,
+      token,
+    );
+
+    const params: { [index: string]: string } = {
+      auth_token: token,
+      format: "json",
+      list_id: listId,
+      method: "rtm.tasks.setPriority",
+      priority: priority,
+      task_id: taskId,
+      taskseries_id: taskseriesId,
+      timeline: timeline,
+    };
+    const apiSig = this.generateApiSig(apiKey, apiSecretKey, params);
+
+    const url = this.REST_URL +
+      "?method=rtm.tasks.setPriority" +
+      "&api_key=" +
+      apiKey +
+      "&auth_token=" +
+      token +
+      "&format=json" +
+      "&list_id=" +
+      listId +
+      "&taskseries_id=" +
+      taskseriesId +
+      "&task_id=" +
+      taskId +
+      "&priority=" +
+      priority +
+      "&timeline=" +
+      timeline +
+      "&api_sig=" +
+      apiSig;
+
+    await fetch(url, { method: "POST" });
+    return true;
+  }
+
+  /**
+   * Set task due date
+   *
+   * @param Denops denops
+   * @param string listId list ID
+   * @param string taskseries_id task series ID
+   * @param string task_id task ID
+   * @param string due due date (ISO 8601 format or natural language)
+   * @return boolean
+   */
+  static async setTaskDueDate(denops: Denops, listId: string, taskseriesId: string, taskId: string, due: string): Promise<boolean> {
+    const { apiKey, apiSecretKey, tokenPath } = await this.getSettings(denops);
+
+    const token: string = await this.generateToken(
+      apiKey,
+      apiSecretKey,
+      tokenPath,
+      denops,
+    );
+
+    const timeline: string = await this.getTimelineFromApi(
+      apiKey,
+      apiSecretKey,
+      token,
+    );
+
+    const params: { [index: string]: string } = {
+      auth_token: token,
+      due: due,
+      format: "json",
+      list_id: listId,
+      method: "rtm.tasks.setDueDate",
+      parse: "1",
+      task_id: taskId,
+      taskseries_id: taskseriesId,
+      timeline: timeline,
+    };
+    const apiSig = this.generateApiSig(apiKey, apiSecretKey, params);
+
+    const url = this.REST_URL +
+      "?method=rtm.tasks.setDueDate" +
+      "&api_key=" +
+      apiKey +
+      "&auth_token=" +
+      token +
+      "&format=json" +
+      "&list_id=" +
+      listId +
+      "&taskseries_id=" +
+      taskseriesId +
+      "&task_id=" +
+      taskId +
+      "&due=" +
+      encodeURIComponent(due) +
+      "&parse=1" +
+      "&timeline=" +
+      timeline +
+      "&api_sig=" +
+      apiSig;
+
+    await fetch(url, { method: "POST" });
+    return true;
   }
 }

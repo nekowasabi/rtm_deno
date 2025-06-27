@@ -1,0 +1,132 @@
+name: Build Binaries
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build for ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            name: linux
+            artifact: rtm-linux
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            name: mac-intel
+            artifact: rtm-mac-intel
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            name: mac-arm64
+            artifact: rtm-mac-arm64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            name: windows
+            artifact: rtm-windows.exe
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+      - name: Cache Deno dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/deno
+          key: ${{ runner.os }}-deno-${{ hashFiles('deno.json', 'cli.ts', 'src/**/*.ts') }}
+          restore-keys: |
+            ${{ runner.os }}-deno-
+
+      - name: Check code
+        run: deno task check
+
+      - name: Run tests
+        run: deno task test
+
+      - name: Build binary
+        run: |
+          deno compile \
+            --allow-net \
+            --allow-env \
+            --allow-read \
+            --allow-write \
+            --target ${{ matrix.target }} \
+            --output ${{ matrix.artifact }} \
+            cli.ts
+
+      - name: Create checksum (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          shasum -a 256 ${{ matrix.artifact }} > ${{ matrix.artifact }}.sha256
+
+      - name: Create checksum (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          certutil -hashfile ${{ matrix.artifact }} SHA256 > ${{ matrix.artifact }}.sha256
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.name }}
+          path: |
+            ${{ matrix.artifact }}
+            ${{ matrix.artifact }}.sha256
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release
+          cp linux/rtm-linux release/
+          cp linux/rtm-linux.sha256 release/
+          cp mac-intel/rtm-mac-intel release/
+          cp mac-intel/rtm-mac-intel.sha256 release/
+          cp mac-arm64/rtm-mac-arm64 release/
+          cp mac-arm64/rtm-mac-arm64.sha256 release/
+          cp windows/rtm-windows.exe release/
+          cp windows/rtm-windows.exe.sha256 release/
+
+      - name: Create combined checksums
+        run: |
+          cd release
+          cat *.sha256 > checksums.txt
+          ls -la
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            release/rtm-linux
+            release/rtm-mac-intel
+            release/rtm-mac-arm64
+            release/rtm-windows.exe
+            release/checksums.txt
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

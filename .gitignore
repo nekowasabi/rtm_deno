@@ -1,0 +1,29 @@
+# Build output
+/rtm
+/dist/
+*.exe
+
+# Deno cache
+.deno/
+
+# Environment variables
+.env
+.env.local
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# RTM token files
+.rtm_token
+*.rtm_token

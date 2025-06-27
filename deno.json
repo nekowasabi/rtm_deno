@@ -1,0 +1,47 @@
+{
+  "tasks": {
+    "cli": "deno run --allow-net --allow-env --allow-read --allow-write cli.ts",
+    "cli:auth": "deno run --allow-net --allow-env --allow-read --allow-write cli.ts auth",
+    "cli:list": "deno run --allow-net --allow-env --allow-read --allow-write cli.ts list",
+    "cli:help": "deno run --allow-net --allow-env --allow-read --allow-write cli.ts help",
+    "build": "deno compile --allow-net --allow-env --allow-read --allow-write --output rtm cli.ts",
+    "build:all": "deno run --allow-run --allow-read --allow-write scripts/build.ts",
+    "build:linux": "deno compile --allow-net --allow-env --allow-read --allow-write --target x86_64-unknown-linux-gnu --output dist/rtm-linux cli.ts",
+    "build:mac": "deno compile --allow-net --allow-env --allow-read --allow-write --target x86_64-apple-darwin --output dist/rtm-mac cli.ts",
+    "build:mac-arm": "deno compile --allow-net --allow-env --allow-read --allow-write --target aarch64-apple-darwin --output dist/rtm-mac-arm64 cli.ts",
+    "build:windows": "deno compile --allow-net --allow-env --allow-read --allow-write --target x86_64-pc-windows-msvc --output dist/rtm-windows.exe cli.ts",
+    "test": "deno test --allow-net --allow-env --allow-read --allow-write",
+    "test:auth": "deno test denops/tests/auth.test.ts --allow-env",
+    "check": "deno check denops/rtm/*.ts src/*.ts cli.ts",
+    "fmt": "deno fmt",
+    "lint": "deno lint"
+  },
+  "compilerOptions": {
+    "allowJs": true,
+    "lib": ["deno.window"],
+    "strict": true
+  },
+  "fmt": {
+    "files": {
+      "include": ["src/", "denops/", "cli.ts"],
+      "exclude": []
+    },
+    "options": {
+      "useTabs": false,
+      "lineWidth": 100,
+      "indentWidth": 2,
+      "semiColons": true,
+      "singleQuote": false,
+      "proseWrap": "preserve"
+    }
+  },
+  "lint": {
+    "files": {
+      "include": ["src/", "denops/", "cli.ts"],
+      "exclude": []
+    },
+    "rules": {
+      "tags": ["recommended"]
+    }
+  }
+}
