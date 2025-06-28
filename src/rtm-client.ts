@@ -1,4 +1,4 @@
-import { createHash } from "https://deno.land/std@0.120.0/hash/mod.ts";
+import { crypto } from "https://deno.land/std@0.208.0/crypto/mod.ts";
 import { existsSync } from "https://deno.land/std@0.120.0/fs/mod.ts";
 
 export type RtmConfig = {
@@ -56,7 +56,7 @@ export class RtmClient {
       parse: "1",
       timeline: timeline,
     };
-    const apiSig = this.generateApiSig(params);
+    const apiSig = await this.generateApiSig(params);
 
     const url = this.REST_URL +
       "?method=rtm.tasks.add" +
@@ -89,7 +89,7 @@ export class RtmClient {
       params.filter = filter;
     }
 
-    const apiSig = this.generateApiSig(params);
+    const apiSig = await this.generateApiSig(params);
 
     let url = this.REST_URL +
       "?method=rtm.tasks.getList" +
@@ -123,7 +123,7 @@ export class RtmClient {
       taskseries_id: taskseriesId,
       timeline: timeline,
     };
-    const apiSig = this.generateApiSig(params);
+    const apiSig = await this.generateApiSig(params);
 
     const url = this.REST_URL +
       "?method=rtm.tasks.delete" +
@@ -157,7 +157,7 @@ export class RtmClient {
       taskseries_id: taskseriesId,
       timeline: timeline,
     };
-    const apiSig = this.generateApiSig(params);
+    const apiSig = await this.generateApiSig(params);
 
     const url = this.REST_URL +
       "?method=rtm.tasks.complete" +
@@ -191,7 +191,7 @@ export class RtmClient {
       taskseries_id: taskseriesId,
       timeline: timeline,
     };
-    const apiSig = this.generateApiSig(params);
+    const apiSig = await this.generateApiSig(params);
 
     const url = this.REST_URL +
       "?method=rtm.tasks.uncomplete" +
@@ -226,7 +226,7 @@ export class RtmClient {
       taskseries_id: taskseriesId,
       timeline: timeline,
     };
-    const apiSig = this.generateApiSig(params);
+    const apiSig = await this.generateApiSig(params);
 
     const url = this.REST_URL +
       "?method=rtm.tasks.setName" +
@@ -262,7 +262,7 @@ export class RtmClient {
       taskseries_id: taskseriesId,
       timeline: timeline,
     };
-    const apiSig = this.generateApiSig(params);
+    const apiSig = await this.generateApiSig(params);
 
     const url = this.REST_URL +
       "?method=rtm.tasks.setPriority" +
@@ -299,7 +299,7 @@ export class RtmClient {
       taskseries_id: taskseriesId,
       timeline: timeline,
     };
-    const apiSig = this.generateApiSig(params);
+    const apiSig = await this.generateApiSig(params);
 
     const url = this.REST_URL +
       "?method=rtm.tasks.setDueDate" +
@@ -322,14 +322,20 @@ export class RtmClient {
   /**
    * Generate API signature
    */
-  private generateApiSig(params: { [key: string]: string }): string {
+  private async generateApiSig(params: { [key: string]: string }): Promise<string> {
     let p = "";
     for (const [attr, value] of Object.entries(params)) {
       p += attr + value;
     }
 
     const q = this.config.apiSecretKey + "api_key" + this.config.apiKey + p;
-    return createHash("md5").update(q).toString();
+    
+    // Use crypto.subtle.digest for MD5 implementation
+    const encoder = new TextEncoder();
+    const data = encoder.encode(q);
+    const hashBuffer = await crypto.subtle.digest("MD5", data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
   /**
@@ -360,7 +366,7 @@ export class RtmClient {
       method: "rtm.timelines.create",
     };
 
-    const apiSig = this.generateApiSig(params);
+    const apiSig = await this.generateApiSig(params);
 
     const url = this.REST_URL +
       "?method=rtm.timelines.create&api_key=" + this.config.apiKey +
@@ -382,12 +388,12 @@ export class RtmClient {
       format: "json",
       method: "rtm.auth.getFrob",
     };
-    let apiSig = this.generateApiSig(params);
+    let apiSig = await this.generateApiSig(params);
     const frob = await this.getFrob(apiSig);
 
     // Generate auth URL
     params = { frob: frob, perms: "delete" };
-    apiSig = this.generateApiSig(params);
+    apiSig = await this.generateApiSig(params);
 
     const authUrl = this.AUTH_URL +
       "?api_key=" + this.config.apiKey +
@@ -405,7 +411,7 @@ export class RtmClient {
 
     // Get token
     params = { format: "json", frob: frob, method: "rtm.auth.getToken" };
-    apiSig = this.generateApiSig(params);
+    apiSig = await this.generateApiSig(params);
     const token = await this.getTokenFromApi(apiSig, frob);
 
     // Save token to file if path is specified

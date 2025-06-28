@@ -38,7 +38,9 @@ function printHelp() {
   console.log(`  ${Deno.args[0] || "cli.ts"} auth`);
   console.log(`  ${Deno.args[0] || "cli.ts"} add "Buy groceries"`);
   console.log(`  ${Deno.args[0] || "cli.ts"} list`);
-  console.log(`  ${Deno.args[0] || "cli.ts"} list --filter "priority:1"`);
+  console.log(`  ${Deno.args[0] || "cli.ts"} list Work                    # List tasks from 'Work' list`);
+  console.log(`  ${Deno.args[0] || "cli.ts"} list --filter "priority:1"   # Traditional filter format`);
+  console.log(`  ${Deno.args[0] || "cli.ts"} list "priority:1 AND list:Work"  # Complex filter`);
   console.log(`  ${Deno.args[0] || "cli.ts"} complete 123456 789012 345678`);
   console.log(`  ${Deno.args[0] || "cli.ts"} set-name 123456 789012 345678 "Updated task name"`);
   console.log(`  ${Deno.args[0] || "cli.ts"} set-priority 123456 789012 345678 1`);
@@ -139,7 +141,20 @@ async function main() {
       }
 
       case "list": {
-        const filter = args.filter as string;
+        let filter = args.filter as string;
+        
+        // If no --filter option but has positional argument, treat it as list name or filter
+        if (!filter && args._[1]) {
+          const arg = args._[1] as string;
+          // If argument contains ":", treat it as a filter
+          // Otherwise, treat it as a list name
+          if (arg.includes(":")) {
+            filter = arg;
+          } else {
+            filter = `list:${arg}`;
+          }
+        }
+        
         const result = await client.getTaskList(filter);
         
         if (args.json) {

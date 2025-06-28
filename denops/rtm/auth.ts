@@ -1,9 +1,9 @@
-import { Denops } from "https://deno.land/x/denops_std@v2.4.0/mod.ts";
-import { createHash } from "https://deno.land/std@0.120.0/hash/mod.ts";
+import { Denops } from "https://deno.land/x/denops_std@v6.5.0/mod.ts";
 import { existsSync } from "https://deno.land/std@0.120.0/fs/mod.ts";
-import { ensureString } from "https://deno.land/x/unknownutil@v1.1.4/mod.ts";
-import * as vars from "https://deno.land/x/denops_std@v2.4.0/variable/mod.ts";
-import * as fn from "https://deno.land/x/denops_std@v2.4.0/function/mod.ts";
+import { ensure, is } from "https://deno.land/x/unknownutil@v3.18.1/mod.ts";
+import * as vars from "https://deno.land/x/denops_std@v6.5.0/variable/mod.ts";
+import * as fn from "https://deno.land/x/denops_std@v6.5.0/function/mod.ts";
+import { crypto } from "https://deno.land/std@0.208.0/crypto/mod.ts";
 
 type ApiSetting = {
   apiKey: string;
@@ -27,7 +27,10 @@ export class Auth {
    * @return boolean
    */
   static async addTask(denops: Denops, task: string): Promise<boolean> {
+    console.log("[RTM DEBUG] Auth.addTask called with task:", task);
+    
     const { apiKey, apiSecretKey, tokenPath } = await this.getSettings(denops);
+    console.log("[RTM DEBUG] Auth.addTask got settings");
 
     const token: string = await this.generateToken(
       apiKey,
@@ -35,18 +38,21 @@ export class Auth {
       tokenPath,
       denops,
     );
+    console.log("[RTM DEBUG] Auth.addTask got token");
 
     const timeline: string = await this.getTimelineFromApi(
       apiKey,
       apiSecretKey,
       token,
     );
+    console.log("[RTM DEBUG] Auth.addTask got timeline:", timeline);
 
     const name = task == ""
       ? await fn.input(denops, "Input task name: ")
       : task.trim();
+    console.log("[RTM DEBUG] Auth.addTask final name:", name);
 
-    ensureString(name);
+    ensure(name, is.String);
     const params: { [index: string]: string } = {
       auth_token: token,
       format: "json",
@@ -55,7 +61,10 @@ export class Auth {
       parse: "1",
       timeline: timeline,
     };
-    const apiSig = this.generateApiSig(apiKey, apiSecretKey, params);
+    console.log("[RTM DEBUG] Auth.addTask params:", params);
+    
+    const apiSig = await this.generateApiSig(apiKey, apiSecretKey, params);
+    console.log("[RTM DEBUG] Auth.addTask generated API signature");
 
     const url = this.REST_URL +
       "?method=rtm.tasks.add" +
@@ -72,8 +81,128 @@ export class Auth {
       "&api_sig=" +
       apiSig;
 
-    await fetch(url, { method: "POST" });
-    return true;
+    console.log("[RTM DEBUG] Auth.addTask final URL:", url);
+    
+    try {
+      console.log("[RTM DEBUG] Auth.addTask starting fetch...");
+      
+      // Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        console.log("[RTM DEBUG] Auth.addTask timeout reached, aborting...");
+        controller.abort();
+      }, 30000); // 30 second timeout for task creation
+      
+      const response = await fetch(url, { 
+        method: "POST",
+        signal: controller.signal 
+      });
+      clearTimeout(timeoutId);
+      
+      const responseText = await response.text();
+      console.log("[RTM DEBUG] Auth.addTask response status:", response.status);
+      console.log("[RTM DEBUG] Auth.addTask response text:", responseText);
+      
+      if (!response.ok) {
+        console.error("[RTM DEBUG] Auth.addTask failed with status:", response.status);
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error("[RTM DEBUG] Auth.addTask fetch error:", error);
+      return false;
+    }
+  }
+
+  /**
+   * Add task with pre-fetched timeline
+   *
+   * @param Denops denops
+   * @param string task task name
+   * @param string apiKey API key
+   * @param string apiSecretKey API secret key
+   * @param string token auth token
+   * @param string timeline timeline
+   * @return boolean
+   */
+  static async addTaskWithTimeline(
+    denops: Denops,
+    task: string,
+    apiKey: string,
+    apiSecretKey: string,
+    token: string,
+    timeline: string
+  ): Promise<boolean> {
+    console.log("[RTM DEBUG] Auth.addTaskWithTimeline called with task:", task);
+
+    const name = task.trim();
+    if (!name) {
+      console.log("[RTM DEBUG] Empty task name, skipping");
+      return false;
+    }
+
+    ensure(name, is.String);
+    const params: { [index: string]: string } = {
+      auth_token: token,
+      format: "json",
+      method: "rtm.tasks.add",
+      name: name.trim(),
+      parse: "1",
+      timeline: timeline,
+    };
+    console.log("[RTM DEBUG] Auth.addTaskWithTimeline params:", params);
+    
+    const apiSig = await this.generateApiSig(apiKey, apiSecretKey, params);
+    console.log("[RTM DEBUG] Auth.addTaskWithTimeline generated API signature");
+
+    const url = this.REST_URL +
+      "?method=rtm.tasks.add" +
+      "&api_key=" +
+      apiKey +
+      "&auth_token=" +
+      token +
+      "&format=json" +
+      "&name=" +
+      encodeURIComponent(name) +
+      "&parse=1" +
+      "&timeline=" +
+      timeline +
+      "&api_sig=" +
+      apiSig;
+
+    console.log("[RTM DEBUG] Auth.addTaskWithTimeline final URL:", url);
+    
+    try {
+      console.log("[RTM DEBUG] Auth.addTaskWithTimeline starting fetch...");
+      
+      // Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        console.log("[RTM DEBUG] Auth.addTaskWithTimeline timeout reached, aborting...");
+        controller.abort();
+      }, 15000); // 15 second timeout for task creation
+      
+      const response = await fetch(url, { 
+        method: "POST",
+        signal: controller.signal 
+      });
+      clearTimeout(timeoutId);
+      
+      const responseText = await response.text();
+      console.log("[RTM DEBUG] Auth.addTaskWithTimeline response status:", response.status);
+      console.log("[RTM DEBUG] Auth.addTaskWithTimeline response text:", responseText);
+      
+      if (!response.ok) {
+        console.error("[RTM DEBUG] Auth.addTaskWithTimeline failed with status:", response.status);
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error("[RTM DEBUG] Auth.addTaskWithTimeline fetch error:", error);
+      return false;
+    }
   }
 
   static async getSettings(denops: Denops): Promise<ApiSetting> {
@@ -81,24 +210,27 @@ export class Auth {
     let apiKey = Deno.env.get("RTM_API_KEY");
     if (!apiKey) {
       let tmp = await vars.g.get(denops, "rtm_api_key");
-      ensureString(tmp);
-      apiKey = tmp;
+      ensure(tmp, is.String);
+      apiKey = tmp as string;
     }
 
     let apiSecretKey = Deno.env.get("RTM_SECRET_KEY");
     if (!apiSecretKey) {
       let tmp = await vars.g.get(denops, "rtm_secret_key");
-      ensureString(tmp);
-      apiSecretKey = tmp;
+      ensure(tmp, is.String);
+      apiSecretKey = tmp as string;
     }
 
     let tokenPath = Deno.env.get("RTM_TOKEN_PATH");
     if (!tokenPath) {
       let tmp = await vars.g.get(denops, "setting_path");
-      ensureString(tmp);
-      tokenPath = tmp;
+      ensure(tmp, is.String);
+      tokenPath = tmp as string;
     }
 
+    if (!apiKey || !apiSecretKey || !tokenPath) {
+      throw new Error("Missing required RTM configuration: apiKey, apiSecretKey, and tokenPath are required");
+    }
     return await Promise.resolve({ apiKey, apiSecretKey, tokenPath });
   }
 
@@ -110,18 +242,24 @@ export class Auth {
    * @param string[] params
    * @return string
    */
-  static generateApiSig(
+  static async generateApiSig(
     apiKey: string,
     apiSecretKey: string,
     params: { [index: string]: string },
-  ): string {
+  ): Promise<string> {
     let p = "";
     for (const [attr, value] of Object.entries(params)) {
       p += attr + value;
     }
 
     const q: string = apiSecretKey + "api_key" + apiKey + p;
-    return createHash("md5").update(q).toString();
+    
+    // Use crypto.subtle.digest for MD5 implementation
+    const encoder = new TextEncoder();
+    const data = encoder.encode(q);
+    const hashBuffer = await crypto.subtle.digest("MD5", data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
   /**
@@ -156,18 +294,18 @@ export class Auth {
       format: "json",
       method: "rtm.auth.getFrob",
     };
-    let apiSig = this.generateApiSig(apiKey, apiSecretKey, params);
+    let apiSig = await this.generateApiSig(apiKey, apiSecretKey, params);
     const frob: string = await this.getFrob(apiSig, apiKey);
 
     // auth
     params = { frob: frob, perms: "delete" };
-    apiSig = this.generateApiSig(apiKey, apiSecretKey, params);
+    apiSig = await this.generateApiSig(apiKey, apiSecretKey, params);
 
     await this.authorize(apiSig, apiKey, frob, denops);
 
     // get token
     params = { format: "json", frob: frob, method: "rtm.auth.getToken" };
-    apiSig = this.generateApiSig(apiKey, apiSecretKey, params);
+    apiSig = await this.generateApiSig(apiKey, apiSecretKey, params);
     return Promise.resolve(await this.getTokenFromApi(apiSig, apiKey, frob));
   }
 
@@ -304,13 +442,16 @@ export class Auth {
     apiSecretKey: string,
     token: string,
   ) {
+    console.log("[RTM DEBUG] getTimelineFromApi called");
+    
     const params: { [index: string]: string } = {
       auth_token: token.toString(),
       format: "json",
       method: "rtm.timelines.create",
     };
 
-    const apiSig = this.generateApiSig(apiKey, apiSecretKey, params);
+    const apiSig = await this.generateApiSig(apiKey, apiSecretKey, params);
+    console.log("[RTM DEBUG] getTimelineFromApi generated API signature");
 
     const url: string = this.REST_URL +
       "?method=rtm.timelines.create&api_key=" +
@@ -320,19 +461,50 @@ export class Auth {
       "&format=json&api_sig=" +
       apiSig;
 
-    const res = await fetch(url).then((response) => {
-      return response.body?.getReader();
-    });
-    if (!res) return "no";
+    console.log("[RTM DEBUG] getTimelineFromApi URL:", url);
 
-    const str: string = await res.read().then(({ value }) => {
-      const d = new TextDecoder();
-      return d.decode(value).toString();
-    });
+    try {
+      console.log("[RTM DEBUG] getTimelineFromApi starting fetch...");
+      
+      // Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        console.log("[RTM DEBUG] getTimelineFromApi timeout reached, aborting...");
+        controller.abort();
+      }, 30000); // 30 second timeout
+      
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      
+      console.log("[RTM DEBUG] getTimelineFromApi response status:", response.status);
+      
+      if (!response.ok) {
+        console.error("[RTM DEBUG] getTimelineFromApi HTTP error:", response.status, response.statusText);
+        return "no";
+      }
+      
+      const str = await response.text();
+      console.log("[RTM DEBUG] getTimelineFromApi response text:", str);
 
-    if (!str) return "no";
-    const j = JSON.parse(str);
-    return j.rsp.timeline;
+      if (!str) {
+        console.error("[RTM DEBUG] getTimelineFromApi empty response");
+        return "no";
+      }
+      
+      const j = JSON.parse(str);
+      console.log("[RTM DEBUG] getTimelineFromApi parsed response:", j);
+      
+      if (j.rsp && j.rsp.timeline) {
+        console.log("[RTM DEBUG] getTimelineFromApi timeline:", j.rsp.timeline);
+        return j.rsp.timeline;
+      } else {
+        console.error("[RTM DEBUG] getTimelineFromApi no timeline in response");
+        return "no";
+      }
+    } catch (error) {
+      console.error("[RTM DEBUG] getTimelineFromApi error:", error);
+      return "no";
+    }
   }
 
   /**
@@ -362,7 +534,7 @@ export class Auth {
       params.filter = filter;
     }
 
-    const apiSig = this.generateApiSig(apiKey, apiSecretKey, params);
+    const apiSig = await this.generateApiSig(apiKey, apiSecretKey, params);
 
     let url = this.REST_URL +
       "?method=rtm.tasks.getList" +
@@ -417,7 +589,7 @@ export class Auth {
       taskseries_id: taskseriesId,
       timeline: timeline,
     };
-    const apiSig = this.generateApiSig(apiKey, apiSecretKey, params);
+    const apiSig = await this.generateApiSig(apiKey, apiSecretKey, params);
 
     const url = this.REST_URL +
       "?method=rtm.tasks.delete" +
@@ -437,7 +609,8 @@ export class Auth {
       "&api_sig=" +
       apiSig;
 
-    await fetch(url, { method: "POST" });
+    const response = await fetch(url, { method: "POST" });
+    await response.text(); // Consume the response body to prevent leaks
     return true;
   }
 
@@ -475,7 +648,7 @@ export class Auth {
       taskseries_id: taskseriesId,
       timeline: timeline,
     };
-    const apiSig = this.generateApiSig(apiKey, apiSecretKey, params);
+    const apiSig = await this.generateApiSig(apiKey, apiSecretKey, params);
 
     const url = this.REST_URL +
       "?method=rtm.tasks.complete" +
@@ -495,7 +668,8 @@ export class Auth {
       "&api_sig=" +
       apiSig;
 
-    await fetch(url, { method: "POST" });
+    const response = await fetch(url, { method: "POST" });
+    await response.text(); // Consume the response body to prevent leaks
     return true;
   }
 
@@ -533,7 +707,7 @@ export class Auth {
       taskseries_id: taskseriesId,
       timeline: timeline,
     };
-    const apiSig = this.generateApiSig(apiKey, apiSecretKey, params);
+    const apiSig = await this.generateApiSig(apiKey, apiSecretKey, params);
 
     const url = this.REST_URL +
       "?method=rtm.tasks.uncomplete" +
@@ -553,7 +727,8 @@ export class Auth {
       "&api_sig=" +
       apiSig;
 
-    await fetch(url, { method: "POST" });
+    const response = await fetch(url, { method: "POST" });
+    await response.text(); // Consume the response body to prevent leaks
     return true;
   }
 
@@ -593,7 +768,7 @@ export class Auth {
       taskseries_id: taskseriesId,
       timeline: timeline,
     };
-    const apiSig = this.generateApiSig(apiKey, apiSecretKey, params);
+    const apiSig = await this.generateApiSig(apiKey, apiSecretKey, params);
 
     const url = this.REST_URL +
       "?method=rtm.tasks.setName" +
@@ -615,7 +790,8 @@ export class Auth {
       "&api_sig=" +
       apiSig;
 
-    await fetch(url, { method: "POST" });
+    const response = await fetch(url, { method: "POST" });
+    await response.text(); // Consume the response body to prevent leaks
     return true;
   }
 
@@ -655,7 +831,7 @@ export class Auth {
       taskseries_id: taskseriesId,
       timeline: timeline,
     };
-    const apiSig = this.generateApiSig(apiKey, apiSecretKey, params);
+    const apiSig = await this.generateApiSig(apiKey, apiSecretKey, params);
 
     const url = this.REST_URL +
       "?method=rtm.tasks.setPriority" +
@@ -677,7 +853,8 @@ export class Auth {
       "&api_sig=" +
       apiSig;
 
-    await fetch(url, { method: "POST" });
+    const response = await fetch(url, { method: "POST" });
+    await response.text(); // Consume the response body to prevent leaks
     return true;
   }
 
@@ -718,7 +895,7 @@ export class Auth {
       taskseries_id: taskseriesId,
       timeline: timeline,
     };
-    const apiSig = this.generateApiSig(apiKey, apiSecretKey, params);
+    const apiSig = await this.generateApiSig(apiKey, apiSecretKey, params);
 
     const url = this.REST_URL +
       "?method=rtm.tasks.setDueDate" +
@@ -741,7 +918,8 @@ export class Auth {
       "&api_sig=" +
       apiSig;
 
-    await fetch(url, { method: "POST" });
+    const response = await fetch(url, { method: "POST" });
+    await response.text(); // Consume the response body to prevent leaks
     return true;
   }
 }

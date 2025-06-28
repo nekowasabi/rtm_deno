@@ -12,6 +12,7 @@
     "build:windows": "deno compile --allow-net --allow-env --allow-read --allow-write --target x86_64-pc-windows-msvc --output dist/rtm-windows.exe cli.ts",
     "test": "deno test --allow-net --allow-env --allow-read --allow-write",
     "test:auth": "deno test denops/tests/auth.test.ts --allow-env",
+    "test:integration": "deno test denops/tests/integration.test.ts --allow-net --allow-env --allow-read --allow-write",
     "check": "deno check denops/rtm/*.ts src/*.ts cli.ts",
     "fmt": "deno fmt",
     "lint": "deno lint"
