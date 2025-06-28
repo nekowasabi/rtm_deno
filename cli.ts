@@ -1,4 +1,4 @@
-#!/usr/bin/env deno run --allow-net --allow-env --allow-read --allow-write
+#!/usr/bin/env -S deno run --allow-net --allow-env --allow-read --allow-write
 
 import { parseArgs } from "https://deno.land/std@0.208.0/cli/parse_args.ts";
 import { RtmClient } from "./src/rtm-client.ts";

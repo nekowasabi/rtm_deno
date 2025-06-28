@@ -487,15 +487,41 @@ deno task cli:help
 - `--help` - Show help information
 
 ### Direct Execution
-You can also run the CLI directly:
-```bash
-# Make executable
-chmod +x cli.ts
 
-# Run directly
+#### Method 1: Direct TypeScript execution (Recommended)
+```bash
+# Run directly with TypeScript file
 ./cli.ts help
 ./cli.ts list --filter "due:today"
 ./cli.ts add "New task"
+```
+
+#### Method 2: Using wrapper script (Maximum compatibility)
+```bash
+# Use the bash wrapper for better system compatibility
+./rtm help
+./rtm list --filter "due:today"
+./rtm add "New task"
+```
+
+#### Troubleshooting Direct Execution
+If you get "Permission denied" error with `./cli.ts`:
+
+**Solution 1**: Check if your system supports `env -S` flag:
+```bash
+# If this works, your system supports the modern approach
+env -S echo "test"
+```
+
+**Solution 2**: Use the wrapper script instead:
+```bash
+# Always works on systems with bash
+./rtm help
+```
+
+**Solution 3**: Run with deno command directly:
+```bash
+deno run --allow-net --allow-env --allow-read --allow-write cli.ts help
 ```
 
 ### Binary Distribution
