@@ -1,6 +1,7 @@
 import { Denops } from "https://deno.land/x/denops_std@v6.5.0/mod.ts";
 import { ensure, is } from "https://deno.land/x/unknownutil@v3.18.1/mod.ts";
 import { Auth } from "./auth.ts";
+import { RtmClient } from "../../src/rtm-client.ts";
 
 const command = (
   denops: Denops,
@@ -143,14 +144,8 @@ export async function main(denops: Denops): Promise<void> {
 }
 
 async function auth(denops: Denops): Promise<unknown> {
-  const { apiKey, apiSecretKey, tokenPath } = await Auth.getSettings(denops);
-
-  const token: string = await Auth.generateToken(
-    apiKey,
-    apiSecretKey,
-    tokenPath,
-    denops,
-  );
+  const { tokenPath } = await Auth.getSettings(denops);
+  const token = await Auth.generateToken(denops);
 
   try {
     Auth.saveTokenFromFile(tokenPath, token);
@@ -233,17 +228,8 @@ async function addSelectedTask(denops: Denops, ...args: unknown[]): Promise<unkn
 
     // Get settings and timeline once for all tasks (more efficient)
     console.log("[RTM DEBUG] Getting RTM settings and timeline...");
-    const { apiKey, apiSecretKey, tokenPath } = await Auth.getSettings(denops);
-    const token = await Auth.generateToken(apiKey, apiSecretKey, tokenPath, denops);
-    const timeline = await Auth.getTimelineFromApi(apiKey, apiSecretKey, token);
+    const client = RtmClient.fromEnv();
     
-    if (timeline === "no") {
-      console.error("[RTM DEBUG] Failed to get timeline, cannot add tasks");
-      return Promise.resolve("Failed to get timeline from RTM API.");
-    }
-    
-    console.log("[RTM DEBUG] Got timeline:", timeline, "- starting batch task addition");
-
     let addedCount = 0;
     let failedCount = 0;
     
@@ -254,13 +240,10 @@ async function addSelectedTask(denops: Denops, ...args: unknown[]): Promise<unkn
       try {
         const taskStartTime = Date.now();
         // Use the optimized addTaskWithTimeline method to reuse timeline
-        const result = await Auth.addTaskWithTimeline(
+        const result = await Auth.addTaskWithClient(
           denops,
           taskName,
-          apiKey,
-          apiSecretKey,
-          token,
-          timeline
+          client,
         );
         const taskEndTime = Date.now();
         const taskDuration = taskEndTime - taskStartTime;
@@ -275,12 +258,6 @@ async function addSelectedTask(denops: Denops, ...args: unknown[]): Promise<unkn
         
         // Redraw after each task
         await denops.cmd(`redraw`);
-        
-        // Add a small delay between tasks to avoid overwhelming the API
-        if (i < taskNames.length - 1) {
-          console.log("[RTM DEBUG] Waiting 500ms before next task...");
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
         
       } catch (error) {
         failedCount++;
