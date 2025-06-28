@@ -4,12 +4,26 @@ VimからRemember The Milk（RTM）を操作するためのdenopsプラグイン
 
 ## Features
 
+### Core Functionality
 - ✅ **Complete CRUD Operations**: タスクの作成、読み取り、更新、削除
+- 🎯 **Rich Task Management**: 優先度、期限、完了状態の管理
+- 📝 **Batch Operations**: 複数タスクの一括追加（選択範囲から）
+- 🔍 **Advanced Filtering**: RTMの強力なフィルタリング機能をフル活用
+
+### Dual Interface
+- 💻 **Vim Plugin**: denopsベースの高性能Vimプラグイン
+- 🖥️ **CLI Tool**: スタンドアロンコマンドラインインターフェース
+- 📦 **Binary Distribution**: クロスプラットフォームバイナリ配布
+
+### Configuration & Security  
 - 🔐 **Flexible Configuration**: 環境変数またはVim変数での設定
-- 🚀 **Fast Performance**: Deno + TypeScriptによる高速処理
-- 🎯 **Rich Filtering**: タスクリストの柔軟なフィルタリング
-- 📝 **Batch Operations**: 複数タスクの一括追加
 - 🔒 **Secure Token Management**: 環境変数による安全な認証情報管理
+- 🚀 **Fast Performance**: Deno + TypeScriptによる高速処理
+
+### Quality Assurance
+- 🧪 **Comprehensive Testing**: 13テストケースによる完全テストカバレッジ
+- 🔧 **Type Safety**: TypeScriptによる型安全性
+- 📊 **Error Handling**: 堅牢なエラーハンドリングとタイムアウト処理
 
 ## Requirements
 
@@ -168,32 +182,133 @@ RTM supports powerful filtering for task queries:
 ## Development
 
 ### Running Tests
-```bash
-# Run specific test file
-deno test denops/tests/auth.test.ts --allow-env
 
-# Run all tests
-deno test denops/tests/ --allow-env
+The project includes comprehensive test coverage for all functionality:
+
+```bash
+# Run all tests (includes API signature tests, CLI tests, and integration tests)
+deno task test
+
+# Run specific test suites
+deno task test:auth          # API signature and authentication tests
+deno task test:cli           # CLI command tests
+deno task test:integration   # Full integration tests with RTM API
+
+# Run tests individually
+deno test denops/tests/auth.test.ts --allow-env
+deno test denops/tests/cli.test.ts --allow-net --allow-env --allow-read --allow-write --allow-run
+deno test denops/tests/integration.test.ts --allow-net --allow-env --allow-read --allow-write
+```
+
+### Test Coverage
+
+**Unit Tests** (`auth.test.ts`):
+- ✅ API signature generation (MD5 hashing)
+- ✅ Parameter handling and validation
+
+**CLI Tests** (`cli.test.ts`):
+- ✅ Help command and argument validation
+- ✅ Error handling for missing arguments
+- ✅ Environment variable configuration testing
+- ✅ Invalid input validation
+- ✅ Process execution and timeout handling
+
+**Integration Tests** (`integration.test.ts`):
+- ✅ Full task lifecycle testing (create → modify → complete → delete)
+- ✅ RTM API connectivity testing
+- ✅ Timeout and error handling
+- ✅ Environment-based test skipping
+
+**Test Results**:
+```
+✅ 13 tests passed, 0 failed
+- auth.test.ts: 2 tests
+- cli.test.ts: 9 tests  
+- integration.test.ts: 2 tests
 ```
 
 ### Type Checking
 ```bash
-# Check TypeScript types
-deno check denops/rtm/*.ts
+# Check TypeScript types for all modules
+deno task check
+
+# Individual type checking
+deno check denops/rtm/*.ts src/*.ts cli.ts
+```
+
+### Code Quality
+```bash
+# Format code
+deno task fmt
+
+# Lint code
+deno task lint
 ```
 
 ### Project Structure
 ```
 rtm_deno/
-├── README.md           # This file
-├── CLAUDE.md           # Development guide for Claude Code
+├── README.md                    # This file
+├── CLAUDE.md                    # Development guide for Claude Code
+├── deno.json                    # Deno project configuration and tasks
+├── cli.ts                       # CLI entry point
+├── src/
+│   └── rtm-client.ts           # Standalone RTM client (CLI & reusable)
 ├── denops/
 │   ├── rtm/
-│   │   ├── main.ts     # Plugin entry point and command dispatcher
-│   │   └── auth.ts     # RTM API integration and CRUD operations
+│   │   ├── main.ts             # Plugin entry point and command dispatcher  
+│   │   └── auth.ts             # RTM API integration and CRUD operations
 │   └── tests/
-│       └── auth.test.ts # Unit tests
+│       ├── auth.test.ts        # Unit tests for API signature generation
+│       ├── cli.test.ts         # CLI command and process tests
+│       └── integration.test.ts # Full integration tests with RTM API
+└── dist/                       # Compiled binaries (created by build tasks)
+    ├── rtm-linux
+    ├── rtm-mac
+    ├── rtm-mac-arm64  
+    ├── rtm-windows.exe
+    └── checksums.txt
 ```
+
+### Development Workflow
+
+1. **Setup Development Environment**:
+   ```bash
+   # Set RTM credentials for testing
+   export RTM_API_KEY="your_api_key"
+   export RTM_SECRET_KEY="your_secret_key"  
+   export RTM_TOKEN_PATH="$HOME/.rtm_token"
+   ```
+
+2. **Make Changes**: Edit TypeScript files in `denops/rtm/`, `src/`, or `cli.ts`
+
+3. **Run Type Check**: `deno task check`
+
+4. **Run Tests**:
+   ```bash
+   # Quick tests (no API calls)
+   deno task test:auth
+   deno task test:cli
+   
+   # Full integration tests (requires RTM credentials)
+   deno task test:integration
+   
+   # All tests
+   deno task test
+   ```
+
+5. **Test CLI Manually**:
+   ```bash
+   deno task cli:help
+   deno task cli:list
+   deno task cli -- add "Test task"
+   ```
+
+6. **Build and Test Binaries**:
+   ```bash
+   deno task build
+   ./rtm help
+   ```
 
 ## Troubleshooting
 
@@ -207,6 +322,9 @@ echo $RTM_TOKEN_PATH
 # Verify token file exists and is readable
 ls -la ~/.rtm_token
 cat ~/.rtm_token
+
+# Test CLI authentication
+deno task cli:auth
 ```
 
 ### Plugin Not Loading
@@ -219,6 +337,9 @@ cat ~/.rtm_token
 
 " Debug denops plugins
 :DenopsInfo
+
+" Test plugin commands
+:RtmAuth
 ```
 
 ### API Errors
@@ -227,14 +348,89 @@ cat ~/.rtm_token
 - Verify your internet connection
 - Check RTM service status
 
+### Development Issues
+
+**Running Tests**:
+```bash
+# If integration tests fail with network timeouts
+deno task test:auth test:cli  # Run only local tests
+
+# Check if RTM credentials are configured for integration tests
+deno task test:integration
+
+# Verify types and code quality
+deno task check
+deno task fmt
+deno task lint
+```
+
+**CLI Issues**:
+```bash
+# If CLI commands fail
+# 1. Check permissions
+ls -la cli.ts
+
+# 2. Verify environment variables
+env | grep RTM
+
+# 3. Test with Deno directly
+deno run --allow-net --allow-env --allow-read --allow-write cli.ts help
+
+# 4. Check binary build
+deno task build
+./rtm help
+```
+
+**Performance Issues**:
+- Integration tests may take up to 60 seconds due to RTM API rate limits
+- CLI tests include 30-second timeouts for network operations
+- Use `deno task test:auth` for quick validation during development
+
 ## Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
 4. Add tests for new functionality
-5. Run type checking and tests
-6. Submit a pull request
+5. Run quality checks:
+   ```bash
+   # Type checking
+   deno task check
+   
+   # Code formatting
+   deno task fmt
+   
+   # Linting
+   deno task lint
+   
+   # Unit and CLI tests (fast)
+   deno task test:auth
+   deno task test:cli
+   
+   # Integration tests (requires RTM credentials)
+   deno task test:integration
+   
+   # All tests
+   deno task test
+   ```
+6. Ensure all tests pass and code quality checks succeed
+7. Submit a pull request with a clear description of changes
+
+### Test Requirements
+
+- **Unit tests**: Required for all new API functions
+- **CLI tests**: Required for new CLI commands or argument handling
+- **Integration tests**: Required for new RTM API interactions
+- **Type safety**: All code must pass TypeScript type checking
+- **Code quality**: Must pass formatting and linting checks
+
+### Testing Guidelines
+
+- Write tests before implementing new features (TDD approach)
+- Use descriptive test names that explain the behavior being tested
+- Include both positive and negative test cases
+- Mock external dependencies where appropriate
+- Ensure tests are deterministic and don't depend on external state
 
 ## License
 

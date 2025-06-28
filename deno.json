@@ -10,9 +10,10 @@
     "build:mac": "deno compile --allow-net --allow-env --allow-read --allow-write --target x86_64-apple-darwin --output dist/rtm-mac cli.ts",
     "build:mac-arm": "deno compile --allow-net --allow-env --allow-read --allow-write --target aarch64-apple-darwin --output dist/rtm-mac-arm64 cli.ts",
     "build:windows": "deno compile --allow-net --allow-env --allow-read --allow-write --target x86_64-pc-windows-msvc --output dist/rtm-windows.exe cli.ts",
-    "test": "deno test --allow-net --allow-env --allow-read --allow-write",
+    "test": "deno test --allow-net --allow-env --allow-read --allow-write --allow-run",
     "test:auth": "deno test denops/tests/auth.test.ts --allow-env",
     "test:integration": "deno test denops/tests/integration.test.ts --allow-net --allow-env --allow-read --allow-write",
+    "test:cli": "deno test denops/tests/cli.test.ts --allow-net --allow-env --allow-read --allow-write --allow-run",
     "check": "deno check denops/rtm/*.ts src/*.ts cli.ts",
     "fmt": "deno fmt",
     "lint": "deno lint"

@@ -217,47 +217,90 @@ async function addSelectedTask(denops: Denops, ...args: unknown[]): Promise<unkn
     ensure(words, is.Array);
     const wordArray = words as string[];
 
-    console.log("[RTM DEBUG] Processing", wordArray.length, "lines for individual task addition");
+    console.log("[RTM DEBUG] Processing", wordArray.length, "lines for batch task addition");
+
+    // Filter out empty lines
+    const taskNames = wordArray
+      .map(word => (word as string).trim())
+      .filter(taskName => taskName !== "");
+    
+    if (taskNames.length === 0) {
+      console.log("[RTM DEBUG] No valid task names found");
+      return Promise.resolve("No valid task names found in selected text.");
+    }
+
+    console.log("[RTM DEBUG] Found", taskNames.length, "valid task names:", taskNames);
+
+    // Get settings and timeline once for all tasks (more efficient)
+    console.log("[RTM DEBUG] Getting RTM settings and timeline...");
+    const { apiKey, apiSecretKey, tokenPath } = await Auth.getSettings(denops);
+    const token = await Auth.generateToken(apiKey, apiSecretKey, tokenPath, denops);
+    const timeline = await Auth.getTimelineFromApi(apiKey, apiSecretKey, token);
+    
+    if (timeline === "no") {
+      console.error("[RTM DEBUG] Failed to get timeline, cannot add tasks");
+      return Promise.resolve("Failed to get timeline from RTM API.");
+    }
+    
+    console.log("[RTM DEBUG] Got timeline:", timeline, "- starting batch task addition");
 
     let addedCount = 0;
-    for (let i = 0; i < wordArray.length; i++) {
-      const word = wordArray[i];
-      ensure(word, is.String);
-      const taskName = (word as string).trim();
-      if (taskName !== "") {
-        console.log("[RTM DEBUG] Adding task", (i + 1) + "/" + wordArray.length + ":", taskName, "at", new Date().toISOString());
-        try {
-          // Use the same method as RtmAddTask (individual Auth.addTask calls)
-          const taskStartTime = Date.now();
-          const result = await Auth.addTask(denops, taskName);
-          const taskEndTime = Date.now();
-          const taskDuration = taskEndTime - taskStartTime;
-          
-          if (result) {
-            addedCount++;
-            console.log("[RTM DEBUG] Successfully added task:", taskName, "in", taskDuration + "ms", "at", new Date().toISOString());
-          } else {
-            console.error("[RTM DEBUG] Failed to add task:", taskName, "after", taskDuration + "ms");
-          }
-          
-          await denops.cmd(`redraw`);
-          
-          // Add a delay between tasks to avoid API rate limits
-          if (i < wordArray.length - 1) {
-            console.log("[RTM DEBUG] Waiting 1 second before next task...");
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          }
-        } catch (error) {
-          console.error("[RTM DEBUG] Failed to add task:", taskName, error);
+    let failedCount = 0;
+    
+    for (let i = 0; i < taskNames.length; i++) {
+      const taskName = taskNames[i];
+      console.log("[RTM DEBUG] Adding task", (i + 1) + "/" + taskNames.length + ":", taskName, "at", new Date().toISOString());
+      
+      try {
+        const taskStartTime = Date.now();
+        // Use the optimized addTaskWithTimeline method to reuse timeline
+        const result = await Auth.addTaskWithTimeline(
+          denops,
+          taskName,
+          apiKey,
+          apiSecretKey,
+          token,
+          timeline
+        );
+        const taskEndTime = Date.now();
+        const taskDuration = taskEndTime - taskStartTime;
+        
+        if (result) {
+          addedCount++;
+          console.log("[RTM DEBUG] ✅ Successfully added task:", taskName, "in", taskDuration + "ms");
+        } else {
+          failedCount++;
+          console.error("[RTM DEBUG] ❌ Failed to add task:", taskName, "after", taskDuration + "ms");
         }
+        
+        // Redraw after each task
+        await denops.cmd(`redraw`);
+        
+        // Add a small delay between tasks to avoid overwhelming the API
+        if (i < taskNames.length - 1) {
+          console.log("[RTM DEBUG] Waiting 500ms before next task...");
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        
+      } catch (error) {
+        failedCount++;
+        console.error("[RTM DEBUG] ❌ Exception adding task:", taskName, error);
       }
     }
     
     const endTime = Date.now();
     const duration = endTime - startTime;
-    console.log("[RTM DEBUG] Successfully added", addedCount, "tasks");
-    console.log("[RTM DEBUG] addSelectedTask completed at", new Date().toISOString(), "duration:", duration + "ms");
-    return Promise.resolve(`Added ${addedCount} tasks from selected text.`);
+    
+    console.log("[RTM DEBUG] Batch task addition completed:");
+    console.log("[RTM DEBUG] - Total tasks processed:", taskNames.length);
+    console.log("[RTM DEBUG] - Successfully added:", addedCount);
+    console.log("[RTM DEBUG] - Failed:", failedCount);
+    console.log("[RTM DEBUG] - Duration:", duration + "ms");
+    
+    const message = `Added ${addedCount}/${taskNames.length} tasks from selected text.` + 
+                   (failedCount > 0 ? ` ${failedCount} tasks failed.` : "");
+    
+    return Promise.resolve(message);
     
   } catch (error) {
     const endTime = Date.now();
