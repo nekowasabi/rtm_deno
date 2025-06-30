@@ -20,7 +20,6 @@ export class Auth {
    * @return boolean
    */
   static async addTask(denops: Denops, task: string): Promise<boolean> {
-    console.log("[RTM DEBUG] Auth.addTask called with task:", task);
     
     const client = RtmClient.fromEnv();
     const name = task == ""
@@ -32,7 +31,6 @@ export class Auth {
       await client.addTask(name);
       return true;
     } catch (error) {
-      console.error("[RTM DEBUG] Auth.addTask client.addTask error:", error);
       return false;
     }
   }
@@ -50,11 +48,9 @@ export class Auth {
     task: string,
     client: RtmClient,
   ): Promise<boolean> {
-    console.log("[RTM DEBUG] Auth.addTaskWithClient called with task:", task);
 
     const name = task.trim();
     if (!name) {
-      console.log("[RTM DEBUG] Empty task name, skipping");
       return false;
     }
 
@@ -62,7 +58,6 @@ export class Auth {
       await client.addTask(name);
       return true;
     } catch (error) {
-      console.error("[RTM DEBUG] Auth.addTaskWithClient client.addTask error:", error);
       return false;
     }
   }
