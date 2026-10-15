@@ -20,14 +20,6 @@ jobs:
             target: x86_64-unknown-linux-gnu
             name: linux
             artifact: rtm-linux
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            name: mac-intel
-            artifact: rtm-mac-intel
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            name: mac-arm64
-            artifact: rtm-mac-arm64
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             name: windows
@@ -103,10 +95,6 @@ jobs:
           mkdir -p release
           cp linux/rtm-linux release/
           cp linux/rtm-linux.sha256 release/
-          cp mac-intel/rtm-mac-intel release/
-          cp mac-intel/rtm-mac-intel.sha256 release/
-          cp mac-arm64/rtm-mac-arm64 release/
-          cp mac-arm64/rtm-mac-arm64.sha256 release/
           cp windows/rtm-windows.exe release/
           cp windows/rtm-windows.exe.sha256 release/
 
@@ -121,8 +109,6 @@ jobs:
         with:
           files: |
             release/rtm-linux
-            release/rtm-mac-intel
-            release/rtm-mac-arm64
             release/rtm-windows.exe
             release/checksums.txt
           generate_release_notes: true
